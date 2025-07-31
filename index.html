@@ -1,193 +1,993 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sala de Leitura - CIEP 183 João Vitta</title>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sala de Leitura | JOÃO VITTA</title>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyC72gBi7POz-NqEMWKgu54S9vTyr0oFkzs",
-      authDomain: "cadsl-3ef8f.firebaseapp.com",
-      projectId: "cadsl-3ef8f",
-      storageBucket: "cadsl-3ef8f.appspot.com",
-      messagingSenderId: "556775341028",
-      appId: "1:556775341028:web:c7c76dd36e7f17411925f1"
-    };
+<!-- FontAwesome -->
+<link
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+  rel="stylesheet"
+/>
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import {
+    getAuth,
+    onAuthStateChanged,
+    signInWithEmailAndPassword,
+    signOut,
+  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+  import {
+    getFirestore,
+    collection,
+    addDoc,
+    onSnapshot,
+    deleteDoc,
+    doc,
+  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  const firebaseConfig = {
+    apiKey: "AIzaSyC72gBi7POz-NqEMWKgu54S9vTyr0oFkzs",
+    authDomain: "cadsl-3ef8f.firebaseapp.com",
+    projectId: "cadsl-3ef8f",
+    storageBucket: "cadsl-3ef8f.appspot.com",
+    messagingSenderId: "556775341028",
+    appId: "1:556775341028:web:c7c76dd36e7f17411925f1",
+  };
 
-    async function listarLivros() {
-      const querySnapshot = await getDocs(collection(db, "livros"));
-      const lista = document.getElementById("listaLivros");
-      lista.innerHTML = "";
-      querySnapshot.forEach((docSnap) => {
-        const livro = docSnap.data();
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = `
-          <h3>${livro.titulo}</h3>
-          <p><strong>Autor:</strong> ${livro.autor}</p>
-          <p><strong>Editora:</strong> ${livro.editora}</p>
-          <p><strong>Ano:</strong> ${livro.ano}</p>
-          <button onclick="excluirLivro('${docSnap.id}')">Excluir</button>
-        `;
-        lista.appendChild(card);
-      });
-    }
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-    window.excluirLivro = async function(id) {
-      await deleteDoc(doc(db, "livros", id));
-      listarLivros();
-    }
+  window.myFirebase = { auth, db, signInWithEmailAndPassword, signOut, collection, addDoc, onSnapshot, deleteDoc, doc };
+</script>
 
-    window.salvarLivro = async function() {
-      const titulo = document.getElementById("titulo").value;
-      const autor = document.getElementById("autor").value;
-      const editora = document.getElementById("editora").value;
-      const ano = document.getElementById("ano").value;
+<!-- Tesseract OCR -->
+<script src="https://unpkg.com/tesseract.js@v5.0.0/dist/tesseract.min.js"></script>
 
-      await addDoc(collection(db, "livros"), {
-        titulo, autor, editora, ano
-      });
+<!-- jsPDF and autotable -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 
-      document.getElementById("formLivro").reset();
-      listarLivros();
-    }
+<style>
+  /* Material You Vibrant Palette */
+  :root {
+    --primary: #6750a4;
+    --primary-container: #eaddff;
+    --secondary: #625b71;
+    --secondary-container: #e8def8;
+    --tertiary: #7d5260;
+    --tertiary-container: #ffd8e4;
+    --error: #b3261e;
+    --error-container: #f9dedc;
+    --background: #fffbfe;
+    --surface: #fffbfe;
+    --surface-variant: #e7e0ec;
+    --outline: #79747e;
+    --on-primary: #ffffff;
+    --on-secondary: #ffffff;
+    --on-tertiary: #ffffff;
+    --on-error: #ffffff;
+    --on-background: #1c1b1f;
+    --on-surface: #1c1b1f;
+  }
 
-    window.onload = () => {
-      listarLivros();
-    }
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
-  <script>
-    function extrairTextoDaImagem() {
-      const input = document.getElementById("capa");
-      if (input.files.length === 0) return;
+  * {
+    box-sizing: border-box;
+  }
 
-      const reader = new FileReader();
-      reader.onload = function () {
-        Tesseract.recognize(reader.result, 'por', {
-          logger: m => console.log(m)
-        }).then(({ data: { text } }) => {
-          const linhas = text.split("\n").filter(l => l.trim() !== "");
-          document.getElementById("titulo").value = linhas[0] || "";
-          document.getElementById("autor").value = linhas[1] || "";
-        });
-      };
-      reader.readAsDataURL(input.files[0]);
-    }
-  </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script>
-    async function exportarPDF() {
-      const {{ jsPDF }} = window.jspdf;
-      const doc = new jsPDF();
-      const lista = document.getElementById("listaLivros");
-      const cards = lista.querySelectorAll(".card");
-      let y = 10;
+  body {
+    margin: 0;
+    background-color: var(--background);
+    font-family: "Google Sans", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--on-background);
+  }
 
-      cards.forEach((card, i) => {
-        const texto = card.innerText;
-        doc.text(texto, 10, y);
-        y += 30;
-      });
-      doc.save("relatorio_livros.pdf");
+  header {
+    background-color: var(--primary);
+    color: var(--on-primary);
+    padding: 1rem 1.5rem;
+    box-shadow: 0 2px 5px rgb(0 0 0 / 0.2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  header h1 {
+    font-weight: 700;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  header h1 i {
+    font-size: 1.8rem;
+  }
+
+  header button {
+    background-color: var(--primary-container);
+    color: var(--primary);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+
+  header button:hover {
+    background-color: #d7c9ff;
+  }
+
+  main {
+    max-width: 1100px;
+    margin: 2rem auto 3rem auto;
+    padding: 0 1rem;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .tab-btn {
+    flex: 1;
+    background-color: var(--surface-variant);
+    border: none;
+    padding: 0.8rem 1rem;
+    font-weight: 600;
+    font-size: 1rem;
+    border-radius: 12px;
+    cursor: pointer;
+    color: var(--outline);
+    transition: background-color 0.3s, color 0.3s;
+    text-align: center;
+  }
+
+  .tab-btn.active {
+    background-color: var(--primary);
+    color: var(--on-primary);
+    box-shadow: 0 4px 12px rgb(103 80 164 / 0.5);
+  }
+
+  /* Cards */
+  .card {
+    background-color: var(--surface);
+    box-shadow: 0 6px 12px rgb(103 80 164 / 0.15);
+    border-radius: 18px;
+    padding: 2rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .card h2 {
+    margin-bottom: 1rem;
+    color: var(--primary);
+  }
+
+  form {
+    display: grid;
+    gap: 1rem 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  label {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-weight: 600;
+    color: var(--secondary);
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  select,
+  input[type="file"] {
+    width: 100%;
+    padding: 0.7rem 1rem;
+    border-radius: 12px;
+    border: 1.8px solid var(--surface-variant);
+    font-size: 1rem;
+    transition: border-color 0.3s;
+    color: var(--on-background);
+    background-color: var(--primary-container);
+  }
+
+  input[type="text"]:focus,
+  input[type="email"]:focus,
+  input[type="password"]:focus,
+  input[type="number"]:focus,
+  select:focus,
+  input[type="file"]:focus {
+    border-color: var(--primary);
+    outline: none;
+    background-color: white;
+  }
+
+  /* Buttons */
+  .btn {
+    padding: 0.8rem 1.6rem;
+    border-radius: 40px;
+    border: none;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .btn-primary {
+    background-color: var(--primary);
+  }
+  .btn-primary:hover {
+    background-color: #4b4086;
+  }
+
+  .btn-secondary {
+    background-color: var(--secondary);
+  }
+  .btn-secondary:hover {
+    background-color: #504760;
+  }
+
+  .btn-success {
+    background-color: #1e8e3e;
+  }
+  .btn-success:hover {
+    background-color: #17732d;
+  }
+
+  .btn-warning {
+    background-color: #ffb300;
+    color: var(--on-background);
+  }
+  .btn-warning:hover {
+    background-color: #cc8e00;
+  }
+
+  .btn-danger {
+    background-color: var(--error);
+  }
+  .btn-danger:hover {
+    background-color: #7b1a16;
+  }
+
+  /* Book cover preview */
+  #coverPreview img {
+    max-width: 120px;
+    max-height: 150px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgb(0 0 0 / 0.15);
+  }
+
+  /* Table style */
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 12px;
+  }
+
+  th,
+  td {
+    text-align: left;
+    padding: 12px 16px;
+    background-color: var(--primary-container);
+    color: var(--primary);
+  }
+
+  th {
+    font-weight: 700;
+    background-color: var(--primary);
+    color: var(--on-primary);
+  }
+
+  tr td:first-child {
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+  }
+
+  tr td:last-child {
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+  }
+
+  tr:hover td {
+    background-color: var(--secondary-container);
+    color: var(--secondary);
+  }
+
+  /* Book cover inside table */
+  .book-cover {
+    width: 80px;
+    height: 110px;
+    object-fit: cover;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgb(103 80 164 / 0.2);
+  }
+
+  /* Status badges */
+  .status-badge {
+    padding: 0.3rem 0.9rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: white;
+    display: inline-block;
+    user-select: none;
+  }
+
+  .status-available {
+    background-color: #4caf50;
+  }
+
+  .status-loaned {
+    background-color: #f9a825;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    form {
+      grid-template-columns: 1fr !important;
     }
-  </script>
-  <script>
-    function exportarCSV() {
-      let csv = "Título,Autor,Editora,Ano\n";
-      const cards = document.querySelectorAll(".card");
-      cards.forEach(card => {
-        const linhas = card.querySelectorAll("p");
-        const titulo = card.querySelector("h3").innerText;
-        const autor = linhas[0].innerText.split(": ")[1];
-        const editora = linhas[1].innerText.split(": ")[1];
-        const ano = linhas[2].innerText.split(": ")[1];
-        csv += `${titulo},${autor},${editora},${ano}\n`;
-      });
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "livros.csv";
-      a.click();
+    header {
+      flex-direction: column;
+      gap: 1rem;
     }
-  </script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f2f2f2;
-      margin: 0;
-      padding: 20px;
+    .tabs {
+      flex-direction: column;
+      gap: 0.5rem;
     }
-    h1 {
-      text-align: center;
+    table,
+    thead,
+    tbody,
+    th,
+    td,
+    tr {
+      display: block;
     }
-    .formulario, .acoes {
-      max-width: 600px;
-      margin: 20px auto;
-      padding: 20px;
-      background: white;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    tr {
+      margin-bottom: 1.5rem;
+      background-color: var(--surface);
+      border-radius: 12px;
+      box-shadow: 0 6px 12px rgb(103 80 164 / 0.1);
+      padding: 1rem;
     }
-    input[type="text"], input[type="number"], input[type="file"] {
-      width: 100%;
-      padding: 10px;
-      margin: 8px 0;
-      border-radius: 5px;
-      border: 1px solid #ccc;
+    th {
+      display: none;
     }
-    button {
-      padding: 10px 20px;
-      margin-top: 10px;
-      background: #007BFF;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
+    td {
+      padding: 0.8rem 1rem;
+      position: relative;
+      padding-left: 40%;
+      margin-bottom: 1rem;
+      background-color: var(--primary-container);
+      color: var(--primary);
+      border-radius: 12px;
     }
-    .card {
-      background: #ffffff;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      padding: 15px;
-      margin: 10px;
+    td::before {
+      position: absolute;
+      top: 0.8rem;
+      left: 1rem;
+      width: 35%;
+      padding-right: 1rem;
+      white-space: nowrap;
+      font-weight: 700;
+      content: attr(data-label);
+      color: var(--secondary);
     }
-    #listaLivros {
-      max-width: 800px;
-      margin: 20px auto;
-    }
-    .acoes {
-      display: flex;
-      justify-content: space-between;
-    }
-  </style>
+  }
+
+  /* Login screen */
+  #login-screen {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #6750a4 0%, #7f53ac 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+  }
+
+  #login-box {
+    background: var(--surface);
+    padding: 2rem 2.5rem;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgb(103 80 164 / 0.4);
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+  }
+
+  #login-box h2 {
+    color: var(--primary);
+    margin-bottom: 1rem;
+    font-weight: 700;
+  }
+
+  #login-box input {
+    margin: 0.7rem 0;
+    padding: 0.8rem 1rem;
+    width: 100%;
+    border-radius: 12px;
+    border: 1.8px solid var(--surface-variant);
+    font-size: 1rem;
+  }
+
+  #login-box input:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: white;
+  }
+
+  #login-box button {
+    margin-top: 1rem;
+    padding: 0.8rem 1.6rem;
+    background-color: var(--primary);
+    color: var(--on-primary);
+    border: none;
+    border-radius: 40px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    width: 100%;
+    transition: background-color 0.3s ease;
+  }
+
+  #login-box button:hover {
+    background-color: #4b4086;
+  }
+
+  /* Offline notification */
+  #offlineNotification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #fbc02d;
+    color: #333;
+    padding: 0.8rem 1.2rem;
+    border-radius: 20px;
+    box-shadow: 0 2px 12px rgb(0 0 0 / 0.15);
+    font-weight: 600;
+    display: none;
+    z-index: 10000;
+  }
+</style>
 </head>
 <body>
-  <h1>Sala de Leitura - CIEP 183 João Vitta</h1>
-
-  <div class="formulario">
-    <form id="formLivro">
-      <input type="text" id="titulo" placeholder="Título" required>
-      <input type="text" id="autor" placeholder="Autor" required>
-      <input type="text" id="editora" placeholder="Editora">
-      <input type="number" id="ano" placeholder="Ano">
-      <input type="file" id="capa" accept="image/*" onchange="extrairTextoDaImagem()">
-      <button type="button" onclick="salvarLivro()">Salvar Livro</button>
-    </form>
+  <!-- Login -->
+  <div id="login-screen">
+    <div id="login-box">
+      <h2><i class="fas fa-book"></i> Sala de Leitura</h2>
+      <input type="email" id="email" placeholder="E-mail" autocomplete="username" required />
+      <input
+        type="password"
+        id="password"
+        placeholder="Senha"
+        autocomplete="current-password"
+        required
+      />
+      <button id="loginBtn">Entrar</button>
+    </div>
   </div>
 
-  <div class="acoes">
-    <button onclick="exportarPDF()">Exportar PDF</button>
-    <button onclick="exportarCSV()">Exportar CSV</button>
-  </div>
+  <!-- Main app -->
+  <main id="main-app" style="display:none;">
+    <header>
+      <h1><i class="fas fa-book"></i> Sala de Leitura | JOÃO VITTA</h1>
+      <button id="logoutBtn" title="Sair"><i class="fas fa-sign-out-alt"></i> Sair</button>
+    </header>
 
-  <div id="listaLivros"></div>
+    <nav class="tabs" aria-label="Navegação principal">
+      <button class="tab-btn active" data-tab="tabBooks" aria-selected="true" role="tab" tabindex="0" id="btnBooks">
+        <i class="fas fa-book"></i> Livros
+      </button>
+      <button class="tab-btn" data-tab="tabReports" aria-selected="false" role="tab" tabindex="-1" id="btnReports">
+        <i class="fas fa-chart-bar"></i> Relatórios
+      </button>
+      <button class="tab-btn" data-tab="tabSettings" aria-selected="false" role="tab" tabindex="-1" id="btnSettings">
+        <i class="fas fa-cog"></i> Configurações
+      </button>
+    </nav>
+
+    <!-- Conteúdos das abas -->
+    <section id="tabBooks" class="tab-content" role="tabpanel" aria-labelledby="btnBooks">
+      <div class="card">
+        <h2><i class="fas fa-plus-circle"></i> Cadastrar Novo Livro</h2>
+        <form id="bookForm" autocomplete="off">
+          <div>
+            <label for="title">Título</label>
+            <input id="title" type="text" placeholder="Digite o título ou use OCR" required />
+          </div>
+          <div>
+            <label for="author">Autor</label>
+            <input id="author" type="text" placeholder="Digite o autor ou use OCR" required />
+          </div>
+          <div>
+            <label for="genre">Gênero</label>
+            <select id="genre" required>
+              <option value="" disabled selected>Selecione...</option>
+              <option>Literatura</option>
+              <option>Ficção</option>
+              <option>Não Ficção</option>
+              <option>Infantil</option>
+              <option>Educacional</option>
+              <option>Biografia</option>
+            </select>
+          </div>
+          <div>
+            <label for="publisher">Editora</label>
+            <input id="publisher" type="text" placeholder="Editora" required />
+          </div>
+          <div>
+            <label for="year">Ano</label>
+            <input
+              id="year"
+              type="number"
+              min="1900"
+              max="2100"
+              placeholder="Ano de publicação"
+              required
+            />
+          </div>
+          <div>
+            <label for="copies">Exemplares</label>
+            <input id="copies" type="number" min="1" placeholder="Quantidade" required />
+          </div>
+          <div>
+            <label for="cover">Capa do Livro (imagem)</label>
+            <input id="cover" type="file" accept="image/*" />
+          </div>
+          <div id="coverPreview"></div>
+          <div style="display:flex; gap:1rem; margin-top:1rem;">
+            <button type="button" id="extractFromImage" class="btn btn-secondary" title="Extrair título e autor da capa">
+              <i class="fas fa-image"></i> Preencher com Imagem
+            </button>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i> Salvar Livro
+            </button>
+            <button type="button" id="clearForm" class="btn btn-warning" title="Limpar formulário">
+              <i class="fas fa-eraser"></i> Limpar
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card" style="overflow-x:auto;">
+        <h2><i class="fas fa-list"></i> Livros Cadastrados</h2>
+        <table id="booksTable" aria-live="polite" aria-label="Lista de livros cadastrados">
+          <thead>
+            <tr>
+              <th>Capa</th>
+              <th>Título</th>
+              <th>Autor</th>
+              <th>Gênero</th>
+              <th>Editora</th>
+              <th>Ano</th>
+              <th>Exemplares</th>
+              <th>Excluir</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="tabReports" class="tab-content" role="tabpanel" aria-labelledby="btnReports" hidden>
+      <div class="card" style="text-align:center;">
+        <h2><i class="fas fa-file-export"></i> Exportar Dados</h2>
+        <p>Exporte a lista de livros para PDF ou CSV:</p>
+        <button id="exportPdf" class="btn btn-success"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
+        <button id="exportCsv" class="btn btn-success"><i class="fas fa-file-csv"></i> Exportar CSV</button>
+      </div>
+    </section>
+
+    <section id="tabSettings" class="tab-content" role="tabpanel" aria-labelledby="btnSettings" hidden>
+      <div class="card" style="text-align:center;">
+        <h2><i class="fas fa-info-circle"></i> Sobre</h2>
+        <p>Sistema de cadastro de livros desenvolvido para a Escola João Vitta.</p>
+        <p>Interface vibrante e moderna baseada no Material You.</p>
+        <p>Desenvolvido com Firebase, Tesseract OCR, jsPDF e CSV export.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <div id="offlineNotification">Você está offline. Alguns recursos podem não funcionar.</div>
+
+<script type="module">
+  // Firebase e outros imports do window
+  const { auth, db, signInWithEmailAndPassword, signOut, collection, addDoc, onSnapshot, deleteDoc, doc } = window.myFirebase;
+
+  // UI elements
+  const loginScreen = document.getElementById("login-screen");
+  const mainApp = document.getElementById("main-app");
+  const loginBtn = document.getElementById("loginBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const emailInput = document.getElementById("email");
+  const passwordInput = document.getElementById("password");
+  const tabs = document.querySelectorAll(".tab-btn");
+  const tabContents = document.querySelectorAll(".tab-content");
+  const bookForm = document.getElementById("bookForm");
+  const booksTableBody = document.querySelector("#booksTable tbody");
+  const coverInput = document.getElementById("cover");
+  const coverPreview = document.getElementById("coverPreview");
+  const extractBtn = document.getElementById("extractFromImage");
+  const clearFormBtn = document.getElementById("clearForm");
+  const exportPdfBtn = document.getElementById("exportPdf");
+  const exportCsvBtn = document.getElementById("exportCsv");
+  const offlineNotification = document.getElementById("offlineNotification");
+
+  let currentUser = null;
+  let booksCollectionRef = null;
+
+  // --- Login ---
+  loginBtn.addEventListener("click", async () => {
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
+    if (!email || !password) {
+      alert("Por favor, preencha e-mail e senha.");
+      return;
+    }
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      emailInput.value = "";
+      passwordInput.value = "";
+    } catch (error) {
+      alert("Erro no login: " + error.message);
+    }
+  });
+
+  logoutBtn.addEventListener("click", async () => {
+    await signOut(auth);
+  });
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      currentUser = user;
+      loginScreen.style.display = "none";
+      mainApp.style.display = "block";
+      setupBooksListener();
+    } else {
+      currentUser = null;
+      loginScreen.style.display = "flex";
+      mainApp.style.display = "none";
+      clearBooksTable();
+      if (unsubscribeBooks) {
+        unsubscribeBooks();
+        unsubscribeBooks = null;
+      }
+    }
+  });
+
+  // --- Tabs ---
+  tabs.forEach((tabBtn) => {
+    tabBtn.addEventListener("click", () => {
+      tabs.forEach((b) => {
+        b.classList.remove("active");
+        b.setAttribute("aria-selected", "false");
+        b.tabIndex = -1;
+      });
+      tabBtn.classList.add("active");
+      tabBtn.setAttribute("aria-selected", "true");
+      tabBtn.tabIndex = 0;
+
+      tabContents.forEach((content) => {
+        content.hidden = content.id !== tabBtn.dataset.tab;
+      });
+    });
+  });
+
+  // --- Cover preview ---
+  coverInput.addEventListener("change", () => {
+    coverPreview.innerHTML = "";
+    const file = coverInput.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Por favor selecione um arquivo de imagem válido.");
+      coverInput.value = "";
+      return;
+    }
+
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(file);
+    img.alt = "Capa do livro";
+    coverPreview.appendChild(img);
+  });
+
+  // --- OCR with Tesseract ---
+  extractBtn.addEventListener("click", async () => {
+    const file = coverInput.files[0];
+    if (!file) {
+      alert("Selecione uma imagem da capa antes de extrair texto.");
+      return;
+    }
+    extractBtn.disabled = true;
+    extractBtn.textContent = "Extraindo...";
+    try {
+      const { data } = await Tesseract.recognize(file, "por", {
+        logger: (m) => {
+          // optionally show progress
+          //console.log(m);
+        },
+      });
+      const text = data.text.trim();
+      // Simples heurística: tente extrair título e autor das primeiras linhas
+      // Exemplo: Primeiro linha título, segunda autor
+      const lines = text.split("\n").filter((l) => l.trim().length > 0);
+      if (lines.length >= 2) {
+        document.getElementById("title").value = lines[0].trim();
+        document.getElementById("author").value = lines[1].trim();
+      } else if (lines.length === 1) {
+        document.getElementById("title").value = lines[0].trim();
+      }
+    } catch (e) {
+      alert("Erro ao extrair texto da imagem: " + e.message);
+    }
+    extractBtn.textContent = "📷 Preencher com Imagem";
+    extractBtn.disabled = false;
+  });
+
+  clearFormBtn.addEventListener("click", () => {
+    bookForm.reset();
+    coverPreview.innerHTML = "";
+  });
+
+  // --- Firestore books collection ---
+  let unsubscribeBooks = null;
+  function setupBooksListener() {
+    booksCollectionRef = collection(db, "books");
+    unsubscribeBooks = onSnapshot(booksCollectionRef, (snapshot) => {
+      const books = [];
+      snapshot.forEach((doc) => {
+        books.push({ id: doc.id, ...doc.data() });
+      });
+      renderBooksTable(books);
+    });
+  }
+
+  function clearBooksTable() {
+    booksTableBody.innerHTML = "";
+  }
+
+  function renderBooksTable(books) {
+    booksTableBody.innerHTML = "";
+    if (books.length === 0) {
+      booksTableBody.innerHTML =
+        '<tr><td colspan="8" style="text-align:center; color:var(--secondary);">Nenhum livro cadastrado ainda.</td></tr>';
+      return;
+    }
+
+    books.forEach((book) => {
+      const tr = document.createElement("tr");
+
+      // Capa
+      const tdCover = document.createElement("td");
+      if (book.coverDataUrl) {
+        const img = document.createElement("img");
+        img.src = book.coverDataUrl;
+        img.alt = `Capa do livro ${book.title}`;
+        img.className = "book-cover";
+        tdCover.appendChild(img);
+      } else {
+        tdCover.textContent = "-";
+      }
+      tr.appendChild(tdCover);
+
+      // Título
+      const tdTitle = document.createElement("td");
+      tdTitle.textContent = book.title;
+      tdTitle.setAttribute("data-label", "Título");
+      tr.appendChild(tdTitle);
+
+      // Autor
+      const tdAuthor = document.createElement("td");
+      tdAuthor.textContent = book.author;
+      tdAuthor.setAttribute("data-label", "Autor");
+      tr.appendChild(tdAuthor);
+
+      // Gênero
+      const tdGenre = document.createElement("td");
+      tdGenre.textContent = book.genre || "-";
+      tdGenre.setAttribute("data-label", "Gênero");
+      tr.appendChild(tdGenre);
+
+      // Editora
+      const tdPublisher = document.createElement("td");
+      tdPublisher.textContent = book.publisher || "-";
+      tdPublisher.setAttribute("data-label", "Editora");
+      tr.appendChild(tdPublisher);
+
+      // Ano
+      const tdYear = document.createElement("td");
+      tdYear.textContent = book.year || "-";
+      tdYear.setAttribute("data-label", "Ano");
+      tr.appendChild(tdYear);
+
+      // Exemplares
+      const tdCopies = document.createElement("td");
+      tdCopies.textContent = book.copies || "1";
+      tdCopies.setAttribute("data-label", "Exemplares");
+      tr.appendChild(tdCopies);
+
+      // Excluir
+      const tdDelete = document.createElement("td");
+      const delBtn = document.createElement("button");
+      delBtn.className = "btn btn-danger";
+      delBtn.title = "Excluir livro";
+      delBtn.innerHTML = '<i class="fas fa-trash"></i>';
+      delBtn.addEventListener("click", async () => {
+        if (confirm(`Deseja excluir o livro "${book.title}"?`)) {
+          try {
+            await deleteDoc(doc(db, "books", book.id));
+          } catch (error) {
+            alert("Erro ao excluir livro: " + error.message);
+          }
+        }
+      });
+      tdDelete.appendChild(delBtn);
+      tr.appendChild(tdDelete);
+
+      booksTableBody.appendChild(tr);
+    });
+  }
+
+  // --- Add book to Firestore ---
+  bookForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    // Pega valores
+    const title = document.getElementById("title").value.trim();
+    const author = document.getElementById("author").value.trim();
+    const genre = document.getElementById("genre").value;
+    const publisher = document.getElementById("publisher").value.trim();
+    const year = document.getElementById("year").value;
+    const copies = document.getElementById("copies").value;
+
+    if (!title || !author || !genre || !publisher || !year || !copies) {
+      alert("Preencha todos os campos corretamente.");
+      return;
+    }
+
+    // Capa (imagem convertida para base64)
+    let coverDataUrl = null;
+    const file = coverInput.files[0];
+    if (file) {
+      coverDataUrl = await readFileAsDataURL(file);
+    }
+
+    try {
+      await addDoc(collection(db, "books"), {
+        title,
+        author,
+        genre,
+        publisher,
+        year: Number(year),
+        copies: Number(copies),
+        coverDataUrl,
+        createdAt: new Date(),
+      });
+      alert("Livro cadastrado com sucesso!");
+      bookForm.reset();
+      coverPreview.innerHTML = "";
+    } catch (error) {
+      alert("Erro ao salvar livro: " + error.message);
+    }
+  });
+
+  function readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error("Erro ao ler arquivo"));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // --- Export PDF ---
+  exportPdfBtn.addEventListener("click", () => {
+    if (!booksTableBody.hasChildNodes()) {
+      alert("Nenhum livro para exportar.");
+      return;
+    }
+
+    import("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js").then(({ jsPDF }) => {
+      const doc = new jsPDF.jsPDF();
+      const rows = [];
+      const headers = [
+        "Título",
+        "Autor",
+        "Gênero",
+        "Editora",
+        "Ano",
+        "Exemplares",
+      ];
+
+      booksTableBody.querySelectorAll("tr").forEach((tr) => {
+        const cells = tr.querySelectorAll("td");
+        if (cells.length === 8) {
+          rows.push([
+            cells[1].textContent,
+            cells[2].textContent,
+            cells[3].textContent,
+            cells[4].textContent,
+            cells[5].textContent,
+            cells[6].textContent,
+          ]);
+        }
+      });
+
+      doc.autoTable({
+        head: [headers],
+        body: rows,
+        startY: 20,
+        theme: "grid",
+      });
+
+      doc.text("Relatório de Livros Cadastrados", 14, 15);
+      doc.save("livros-cadastrados.pdf");
+    });
+  });
+
+  // --- Export CSV ---
+  exportCsvBtn.addEventListener("click", () => {
+    if (!booksTableBody.hasChildNodes()) {
+      alert("Nenhum livro para exportar.");
+      return;
+    }
+    const headers = [
+      "Título",
+      "Autor",
+      "Gênero",
+      "Editora",
+      "Ano",
+      "Exemplares",
+    ];
+    let csvContent = headers.join(";") + "\n";
+
+    booksTableBody.querySelectorAll("tr").forEach((tr) => {
+      const cells = tr.querySelectorAll("td");
+      if (cells.length === 8) {
+        const row = [
+          cells[1].textContent,
+          cells[2].textContent,
+          cells[3].textContent,
+          cells[4].textContent,
+          cells[5].textContent,
+          cells[6].textContent,
+        ];
+        csvContent += row.join(";") + "\n";
+      }
+    });
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "livros-cadastrados.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // --- Offline/Online detection ---
+  function updateOnlineStatus() {
+    if (!navigator.onLine) {
+      offlineNotification.style.display = "block";
+    } else {
+      offlineNotification.style.display = "none";
+    }
+  }
+  window.addEventListener("online", updateOnlineStatus);
+  window.addEventListener("offline", updateOnlineStatus);
+  updateOnlineStatus();
+</script>
 </body>
 </html>
