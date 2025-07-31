@@ -9,8 +9,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-  import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-
+  import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
   const firebaseConfig = {
     apiKey: "AIzaSyC72gBi7POz-NqEMWKgu54S9vTyr0oFkzs",
     authDomain: "cadsl-3ef8f.firebaseapp.com",
@@ -19,25 +18,20 @@
     messagingSenderId: "556775341028",
     appId: "1:556775341028:web:c7c76dd36e7f17411925f1"
   };
-
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
-
   // Expõe funções e variáveis para uso global
   window.firebaseApp = app;
   window.auth = auth;
   window.db = db;
-  window.firebaseFns = { onAuthStateChanged, signInWithEmailAndPassword, signOut, collection, addDoc, onSnapshot, deleteDoc, doc };
+  window.firebaseFns = { onAuthStateChanged, signInWithEmailAndPassword, signOut, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc };
 </script>
-
 <!-- jsPDF via script normal -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-
 <!-- Tesseract OCR -->
 <script src="https://unpkg.com/tesseract.js@v5.0.0/dist/tesseract.min.js"></script>
-
 <style>
   /* Cores vibrantes estilo material */
   :root {
@@ -94,7 +88,6 @@
   nav button:hover {
     background-color: var(--primary-dark);
   }
-
   main.container {
     flex-grow: 1;
     max-width: 1000px;
@@ -278,7 +271,6 @@
 </style>
 </head>
 <body>
-
 <!-- Login Screen -->
 <div id="login-screen" style="min-height: 100vh; display:flex; justify-content:center; align-items:center; background: var(--background);">
   <div style="background: white; padding: 30px 40px; border-radius: 14px; box-shadow: 0 8px 20px rgb(30 136 229 / 0.15); max-width: 360px; width: 90%; text-align:center;">
@@ -288,7 +280,6 @@
     <button id="loginBtn" class="btn btn-primary" style="width: 100%; font-weight: 700; font-size: 1.1rem;">Entrar</button>
   </div>
 </div>
-
 <!-- Main App -->
 <div id="main-app" style="display:none; flex-direction: column; min-height: 100vh;">
 <header>
@@ -301,9 +292,7 @@
     </nav>
   </div>
 </header>
-
 <main class="container">
-
   <!-- Livros -->
   <section id="tab-books" class="tab-content" style="display: block;">
     <div class="card">
@@ -319,7 +308,6 @@
             <input id="author" type="text" required />
           </div>
         </div>
-
         <div class="flex-row">
           <div class="form-group flex-1">
             <label for="genre">Gênero</label>
@@ -373,7 +361,6 @@
               <option>Livros de Colorir</option>
               <option>Planners</option>
               <option>Livros Interativos</option>
-             
             </select>
           </div>
           <div class="form-group flex-1">
@@ -381,7 +368,6 @@
             <input id="publisher" type="text" required />
           </div>
         </div>
-
         <div class="flex-row">
           <div class="form-group flex-1">
             <label for="year">Ano</label>
@@ -392,21 +378,18 @@
             <input id="copies" type="number" min="1" required />
           </div>
         </div>
-
         <div class="form-group">
           <label for="cover">Capa do Livro (imagem)</label>
           <input id="cover" type="file" accept="image/*" />
           <div id="coverPreview" style="margin-top: 10px;"></div>
         </div>
-
         <div class="flex-row" style="gap: 15px;">
           <button type="button" class="btn btn-secondary" id="extractFromImage"><i class="fas fa-image"></i> Preencher com Imagem (OCR)</button>
-          <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar Livro</button>
+          <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> <span id="saveBtnText">Salvar Livro</span></button>
           <button type="button" class="btn btn-warning" id="clearFormBtn"><i class="fas fa-eraser"></i> Limpar Formulário</button>
         </div>
       </form>
     </div>
-
     <div class="card">
       <h2><i class="fas fa-list"></i> Lista de Livros</h2>
       <div class="search-container">
@@ -430,7 +413,6 @@
       </table>
     </div>
   </section>
-
   <!-- Relatórios -->
   <section id="tab-reports" class="tab-content" style="display:none;">
     <div class="card">
@@ -454,24 +436,20 @@
   </section>
 </main>
 </div>
-
 <script>
   // Aguarda que o módulo Firebase tenha carregado e exposto na window
   document.addEventListener('DOMContentLoaded', () => {
     const {
       auth,
       db,
-      firebaseFns: { onAuthStateChanged, signInWithEmailAndPassword, signOut, collection, addDoc, onSnapshot, deleteDoc, doc }
+      firebaseFns: { onAuthStateChanged, signInWithEmailAndPassword, signOut, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc }
     } = window;
-
     const loginScreen = document.getElementById('login-screen');
     const mainApp = document.getElementById('main-app');
-
     const loginBtn = document.getElementById('loginBtn');
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
     const logoutBtn = document.getElementById('logoutBtn');
-
     const bookForm = document.getElementById('bookForm');
     const titleInput = document.getElementById('title');
     const authorInput = document.getElementById('author');
@@ -481,31 +459,26 @@
     const copiesInput = document.getElementById('copies');
     const coverInput = document.getElementById('cover');
     const coverPreview = document.getElementById('coverPreview');
-
     const extractFromImageBtn = document.getElementById('extractFromImage');
     const clearFormBtn = document.getElementById('clearFormBtn');
-
+    const saveBtnText = document.getElementById('saveBtnText');
     const booksList = document.getElementById('booksList');
-
     const tabsButtons = document.querySelectorAll('nav button[data-tab]');
     const tabsSections = document.querySelectorAll('.tab-content');
-
     const searchInput = document.getElementById('searchBooks');
     const searchBtn = document.getElementById('searchBtn');
-
     const exportPdfBtn = document.getElementById('exportPdfBtn');
     const exportCsvBtn = document.getElementById('exportCsvBtn');
-
     // Variáveis para dados
     let currentUser = null;
     let booksData = [];
+    let currentEditId = null; // Armazena o ID do livro sendo editado
 
     // UI funções
     function switchTab(tabName) {
       tabsButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tabName));
       tabsSections.forEach(section => section.style.display = (section.id === tabName ? 'block' : 'none'));
     }
-
     tabsButtons.forEach(btn => {
       btn.addEventListener('click', () => {
         switchTab(btn.dataset.tab);
@@ -561,7 +534,10 @@
     function clearForm() {
       bookForm.reset();
       coverPreview.innerHTML = '';
+      currentEditId = null;
+      saveBtnText.textContent = 'Salvar Livro';
     }
+
     clearFormBtn.addEventListener('click', clearForm);
 
     // Função para salvar livro no Firestore
@@ -574,10 +550,19 @@
       }
     }
 
+    // Função para atualizar livro no Firestore
+    async function updateBook(id, book) {
+      try {
+        await updateDoc(doc(db, 'books', id), book);
+        alert('Livro atualizado com sucesso!');
+      } catch (err) {
+        alert('Erro ao atualizar livro: ' + err.message);
+      }
+    }
+
     // Form submit
     bookForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-
       if (!titleInput.value.trim() || !authorInput.value.trim()) {
         alert('Título e Autor são obrigatórios');
         return;
@@ -591,13 +576,16 @@
         return;
       }
 
-      // Capa: converte a imagem em base64 para salvar
       let coverBase64 = '';
       if (coverInput.files.length > 0) {
         coverBase64 = await toBase64(coverInput.files[0]);
+      } else {
+        // Mantém a capa antiga se nenhuma nova for selecionada
+        const existingBook = booksData.find(b => b.id === currentEditId);
+        coverBase64 = existingBook?.cover || '';
       }
 
-      const newBook = {
+      const bookData = {
         title: titleInput.value.trim(),
         author: authorInput.value.trim(),
         genre: genreSelect.value,
@@ -605,10 +593,15 @@
         year: Number(yearInput.value),
         copies: Number(copiesInput.value),
         cover: coverBase64,
-        createdAt: new Date()
+        createdAt: currentEditId ? existingBook?.createdAt : new Date()
       };
 
-      await saveBook(newBook);
+      if (currentEditId) {
+        await updateBook(currentEditId, bookData);
+      } else {
+        await saveBook(bookData);
+      }
+
       clearForm();
     });
 
@@ -630,16 +623,12 @@
       }
       const file = coverInput.files[0];
       const url = URL.createObjectURL(file);
-
       extractFromImageBtn.disabled = true;
       extractFromImageBtn.textContent = 'Extraindo texto...';
-
       try {
         const { data: { text } } = await Tesseract.recognize(url, 'por', {
           logger: m => console.log(m)
         });
-        // tentar extrair título e autor via heurística simples:
-        // título = primeira linha, autor = segunda linha
         const lines = text.trim().split('\n').map(l => l.trim()).filter(l => l.length > 0);
         if (lines.length >= 1) titleInput.value = lines[0];
         if (lines.length >= 2) authorInput.value = lines[1];
@@ -653,33 +642,32 @@
     });
 
     // Realtime Firestore snapshot para listar livros
-   function loadBooksRealtime() {
-  const colRef = collection(db, 'books');
-  onSnapshot(colRef, (snapshot) => {
-    booksData = [];
-    booksList.innerHTML = '';
-    snapshot.forEach(docSnap => {
-      const book = { id: docSnap.id, ...docSnap.data() };
-      booksData.push(book);
-    });
-    renderBooks(booksData);
-    updateReports();
-  }, (error) => {
-    if (error.message.includes('Missing or insufficient permissions')) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Desconectado',
-        text: 'Você foi desconectado com sucesso.',
-        confirmButtonText: 'Ok'
-      }).then(() => {
-        signOut(auth);
+    function loadBooksRealtime() {
+      const colRef = collection(db, 'books');
+      onSnapshot(colRef, (snapshot) => {
+        booksData = [];
+        booksList.innerHTML = '';
+        snapshot.forEach(docSnap => {
+          const book = { id: docSnap.id, ...docSnap.data() };
+          booksData.push(book);
+        });
+        renderBooks(booksData);
+        updateReports();
+      }, (error) => {
+        if (error.message.includes('Missing or insufficient permissions')) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Desconectado',
+            text: 'Você foi desconectado com sucesso.',
+            confirmButtonText: 'Ok'
+          }).then(() => {
+            signOut(auth);
+          });
+        } else {
+          alert('Erro ao carregar livros: ' + error.message);
+        }
       });
-    } else {
-      alert('Erro ao carregar livros: ' + error.message);
     }
-  });
-}
-
 
     // Renderiza tabela de livros
     function renderBooks(books) {
@@ -690,7 +678,6 @@
       }
       for (const book of books) {
         const tr = document.createElement('tr');
-
         tr.innerHTML = `
           <td><img src="${book.cover || 'https://via.placeholder.com/70x90?text=Sem+Capa'}" alt="Capa" class="book-cover"/></td>
           <td>${escapeHtml(book.title)}</td>
@@ -700,6 +687,7 @@
           <td>${book.year}</td>
           <td>${book.copies}</td>
           <td>
+            <button class="btn btn-warning btn-sm btn-edit" data-id="${book.id}" title="Editar"><i class="fas fa-edit"></i></button>
             <button class="btn btn-warning btn-sm btn-delete" data-id="${book.id}" title="Excluir"><i class="fas fa-trash"></i></button>
           </td>
         `;
@@ -717,6 +705,33 @@
               alert('Erro ao excluir: ' + err.message);
             }
           }
+        });
+      });
+
+      // edit event
+      document.querySelectorAll('.btn-edit').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.id;
+          const book = booksData.find(b => b.id === id);
+          if (!book) return;
+
+          // Preenche o formulário
+          titleInput.value = book.title;
+          authorInput.value = book.author;
+          genreSelect.value = book.genre;
+          publisherInput.value = book.publisher;
+          yearInput.value = book.year;
+          copiesInput.value = book.copies;
+
+          // Preview da capa
+          if (book.cover) {
+            coverPreview.innerHTML = `<img src="${book.cover}" alt="Capa" style="width:120px; height:auto; border-radius: 8px; object-fit: cover;" />`;
+          }
+
+          // Atualiza estado para edição
+          currentEditId = id;
+          saveBtnText.textContent = 'Atualizar Livro';
+          switchTab('tab-books');
         });
       });
     }
@@ -739,12 +754,10 @@
     exportPdfBtn.addEventListener('click', () => {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
-
       doc.setFontSize(18);
       doc.text("Relatório de Livros", 14, 22);
       doc.setFontSize(11);
       doc.setTextColor(100);
-
       const headers = [["Título", "Autor", "Gênero", "Editora", "Ano", "Exemplares"]];
       const data = booksData.map(b => [
         b.title,
@@ -754,7 +767,6 @@
         b.year.toString(),
         b.copies.toString()
       ]);
-
       doc.autoTable({
         startY: 30,
         head: headers,
@@ -762,7 +774,6 @@
         styles: { fontSize: 9 },
         headStyles: { fillColor: [30, 136, 229] }
       });
-
       doc.save("relatorio_livros.pdf");
     });
 
@@ -771,7 +782,6 @@
       const csvRows = [];
       const headers = ["Título", "Autor", "Gênero", "Editora", "Ano", "Exemplares"];
       csvRows.push(headers.join(','));
-
       booksData.forEach(b => {
         const row = [
           `"${b.title.replace(/"/g, '""')}"`,
@@ -783,11 +793,9 @@
         ];
         csvRows.push(row.join(','));
       });
-
       const csvString = csvRows.join('\n');
       const blob = new Blob([csvString], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
-
       const a = document.createElement('a');
       a.href = url;
       a.download = 'relatorio_livros.csv';
@@ -808,13 +816,12 @@
     function escapeHtml(text) {
       return text
         .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
+        .replace(/</g, "<")
+        .replace(/>/g, ">")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
     }
   });
 </script>
-
 </body>
 </html>
