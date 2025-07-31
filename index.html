@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sala de Leitura | JOÃO VITTA</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Firebase SDK (Modular) -->
+    <!-- Firebase SDK -->
     <script type="module">
-      // Importa o Firebase
+      // Import do Firebase (v9 modular)
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
       import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
       import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-      // Configuração do seu projeto
+      // Sua configuração
       const firebaseConfig = {
         apiKey: "AIzaSyC72gBi7POz-NqEMWKgu54S9vTyr0oFkzs",
         authDomain: "cadsl-3ef8f.firebaseapp.com",
@@ -22,13 +22,12 @@
         appId: "1:556775341028:web:c7c76dd36e7f17411925f1"
       };
 
-      // Inicializa o Firebase
+      // Inicializa
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
       const dbFirestore = getFirestore(app);
 
-      // Torna disponível globalmente (para uso no script principal)
-      window.firebaseConfig = firebaseConfig;
+      // Exporta globalmente
       window.firebase = { auth, dbFirestore, signInWithEmailAndPassword, signOut, collection, addDoc, onSnapshot };
     </script>
     <!-- Bibliotecas para PDF -->
@@ -39,69 +38,78 @@
     <style>
         :root {
             --primary: #4a6fa5;
-            --secondary: #166088;
             --light: #f8f9fa;
-            --dark: #343a40;
-            --success: #28a745;
-            --warning: #ffc107;
             --danger: #dc3545;
+            --warning: #ffc107;
         }
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', sans-serif;
         }
         body {
             background-color: #f5f5f5;
             color: #333;
             line-height: 1.6;
         }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        header {
-            background-color: var(--primary);
-            color: white;
-            padding: 15px 0;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        header h1 {
+        .login-container {
             display: flex;
+            justify-content: center;
             align-items: center;
-            gap: 10px;
-            font-size: 1.8rem;
-            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            background: linear-gradient(135deg, #4a6fa5, #166088);
         }
-        nav {
-            display: flex;
-            gap: 20px;
-            justify-content: center;
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+            color: #333;
+        }
+        .login-box h2 {
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+        .login-box input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
             margin-top: 10px;
         }
-        nav button {
-            background: none;
-            border: none;
+        .btn-primary {
+            background-color: var(--primary);
             color: white;
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s;
+            width: 100%;
         }
-        nav button:hover {
-            background-color: rgba(255,255,255,0.1);
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+            width: 100%;
         }
-        nav button.active {
-            background-color: rgba(255,255,255,0.2);
-            font-weight: bold;
+        .app-container {
+            display: none;
+            padding: 20px;
         }
         .card {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            background: white;
             padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
         .form-group {
@@ -116,48 +124,7 @@
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-        .form-control:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: all 0.3s;
-        }
-        .btn-primary {
-            background-color: var(--primary);
-            color: white;
-        }
-        .btn-primary:hover {
-            background-color: var(--secondary);
-        }
-        .btn-danger {
-            background-color: var(--danger);
-            color: white;
-        }
-        .btn-danger:hover {
-            background-color: #c82333;
-        }
-        .btn-success {
-            background-color: var(--success);
-            color: white;
-        }
-        .btn-success:hover {
-            background-color: #218838;
-        }
-        .btn-warning {
-            background-color: var(--warning);
-            color: #000;
-        }
-        .btn-warning:hover {
-            background-color: #e0a800;
+            border-radius: 6px;
         }
         .table {
             width: 100%;
@@ -165,297 +132,257 @@
             margin-top: 20px;
         }
         .table th, .table td {
-            padding: 12px 15px;
+            padding: 12px;
             text-align: left;
             border-bottom: 1px solid #ddd;
         }
         .table th {
             background-color: #f8f9fa;
-            font-weight: 600;
-        }
-        .table tr:hover {
-            background-color: #f5f5f5;
-        }
-        .action-buttons {
-            display: flex;
-            gap: 5px;
-        }
-        .action-btn {
-            padding: 5px 10px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .action-btn i {
-            pointer-events: none;
         }
         .book-cover {
-            width: 80px;
-            height: 100px;
+            width: 60px;
+            height: 80px;
             object-fit: cover;
             border-radius: 4px;
         }
-        .search-container {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        /* Responsive */
-        @media (max-width: 768px) {
-            nav {
-                flex-direction: column;
-                gap: 10px;
-            }
-            .action-buttons {
-                flex-direction: column;
-            }
-            .table {
-                display: block;
-                overflow-x: auto;
-            }
+        .btn-warning {
+            background-color: var(--warning);
+            color: #000;
         }
     </style>
 </head>
 <body>
 
   <!-- Tela de Login -->
-  <div id="login-screen" style="display: none; text-align: center; padding: 50px; background: #f5f5f5; min-height: 100vh;">
-    <div style="background: white; padding: 30px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+  <div id="login-container" class="login-container">
+    <div class="login-box">
       <h2><i class="fas fa-book"></i> Sala de Leitura</h2>
       <p><strong>JOÃO VITTA</strong></p>
-      <input type="email" id="email" placeholder="E-mail" style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px;">
-      <input type="password" id="password" placeholder="Senha" style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px;">
+      <input type="email" id="email" placeholder="E-mail" class="form-control">
+      <input type="password" id="password" placeholder="Senha" class="form-control">
       <button onclick="login()" class="btn btn-primary">Entrar</button>
+      <p style="color: #666; margin-top: 10px; font-size: 14px;">
+        Use: adrianarruda@gmail.com ou monicalima@gmail.com
+      </p>
     </div>
   </div>
 
   <!-- App Principal -->
-  <div id="main-app" style="display: none;">
-    <header>
-      <div class="container">
-        <h1>
-          <i class="fas fa-book"></i> Sala de Leitura | JOÃO VITTA
-        </h1>
-        <button id="logoutBtn" onclick="logout()" style="background: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; float: right;">Sair</button>
-      </div>
+  <div id="app-container" class="app-container">
+
+    <header style="background: var(--primary); color: white; padding: 15px; text-align: center; border-radius: 8px; margin-bottom: 20px;">
+      <h1><i class="fas fa-book"></i> Sala de Leitura | JOÃO VITTA</h1>
+      <button onclick="logout()" class="btn btn-danger" style="float: right;">Sair</button>
     </header>
 
-    <div class="container">
-      <div id="books" class="tab-content active">
-        <div class="card">
-          <h2><i class="fas fa-book"></i> Cadastrar Novo Livro</h2>
-          <form id="bookForm">
-            <div class="form-group">
-              <label for="title">Título:</label>
-              <input type="text" id="title" class="form-control" required>
-            </div>
-            <div class="form-group">
-              <label for="author">Autor:</label>
-              <input type="text" id="author" class="form-control" required>
-            </div>
-            <div class="form-group">
-              <label for="genre">Gênero:</label>
-              <select id="genre" class="form-control" required>
-                <option value="">Selecione...</option>
-                <option value="Literatura">Literatura</option>
-                <option value="Ficção">Ficção</option>
-                <option value="Não Ficção">Não Ficção</option>
-                <option value="Infantil">Infantil</option>
-                <option value="Educacional">Educacional</option>
-                <option value="Biografia">Biografia</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="publisher">Editora:</label>
-              <input type="text" id="publisher" class="form-control" required>
-            </div>
-            <div class="form-group">
-              <label for="year">Ano:</label>
-              <input type="number" id="year" class="form-control" min="1900" max="2023" required>
-            </div>
-            <div class="form-group">
-              <label for="copies">Exemplares:</label>
-              <input type="number" id="copies" class="form-control" min="1" required>
-            </div>
-            <div class="form-group">
-              <label for="cover">Capa do Livro:</label>
-              <input type="file" id="cover" accept="image/*" class="form-control">
-              <div id="coverPreview" style="margin-top: 10px;"></div>
-            </div>
-            <div class="form-group">
-              <button type="button" class="btn btn-primary" id="extractFromImage">
-                <i class="fas fa-image"></i> Preencher com Imagem
-              </button>
-            </div>
-            <button type="submit" class="btn btn-primary">
-              <i class="fas fa-save"></i> Salvar Livro
-            </button>
-            <button type="button" class="btn btn-warning" id="limparFormBtn" style="margin-left: 10px;">
-              <i class="fas fa-eraser"></i> Limpar Formulário
-            </button>
-          </form>
+    <div class="card">
+      <h2><i class="fas fa-book"></i> Cadastrar Novo Livro</h2>
+      <form id="bookForm">
+        <div class="form-group">
+          <label>Título:</label>
+          <input type="text" id="title" class="form-control" required>
         </div>
-        <div class="card">
-          <h2><i class="fas fa-list"></i> Lista de Livros</h2>
-          <div class="search-container">
-            <input type="text" id="searchBooks" class="form-control" placeholder="Buscar por título ou autor...">
-            <button class="btn btn-primary" id="searchBtn">
-              <i class="fas fa-search"></i> Buscar
-            </button>
-          </div>
-          <table class="table" id="booksTable">
-            <thead>
-              <tr>
-                <th>Capa</th>
-                <th>Título</th>
-                <th>Autor</th>
-                <th>Gênero</th>
-                <th>Exemplares</th>
-              </tr>
-            </thead>
-            <tbody id="booksList">
-            </tbody>
-          </table>
+        <div class="form-group">
+          <label>Autor:</label>
+          <input type="text" id="author" class="form-control" required>
         </div>
-      </div>
+        <div class="form-group">
+          <label>Gênero:</label>
+          <select id="genre" class="form-control" required>
+            <option value="">Selecione...</option>
+            <option value="Literatura">Literatura</option>
+            <option value="Ficção">Ficção</option>
+            <option value="Não Ficção">Não Ficção</option>
+            <option value="Infantil">Infantil</option>
+            <option value="Educacional">Educacional</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Capa do Livro:</label>
+          <input type="file" id="cover" accept="image/*" class="form-control">
+          <div id="coverPreview" style="margin-top: 10px;"></div>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="preencherComImagem()">
+          <i class="fas fa-image"></i> Preencher com Imagem
+        </button>
+        <button type="submit" class="btn btn-primary" style="margin-top: 10px;">
+          <i class="fas fa-save"></i> Salvar Livro
+        </button>
+        <button type="button" class="btn btn-warning" onclick="limparFormulario()" style="margin-left: 10px;">
+          <i class="fas fa-eraser"></i> Limpar
+        </button>
+      </form>
     </div>
+
+    <div class="card">
+      <h2>Livros Cadastrados</h2>
+      <table class="table" id="booksTable">
+        <thead>
+          <tr>
+            <th>Capa</th>
+            <th>Título</th>
+            <th>Autor</th>
+            <th>Gênero</th>
+          </tr>
+        </thead>
+        <tbody id="booksList"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <button onclick="gerarPDF()" class="btn btn-primary">
+        <i class="fas fa-file-pdf"></i> Gerar Relatório em PDF
+      </button>
+      <button onclick="exportarCSV()" class="btn btn-success" style="margin-left: 10px;">
+        <i class="fas fa-file-export"></i> Exportar CSV
+      </button>
+    </div>
+
   </div>
 
   <script>
-    // Banco de dados local (para fallback)
+    // Banco local
     const db = { books: [] };
 
-    // Verifica autenticação
-    function verificarAutenticacao() {
-      const loginScreen = document.getElementById('login-screen');
-      const mainApp = document.getElementById('main-app');
+    // Verifica login
+    function verificarLogin() {
+      const loginContainer = document.getElementById('login-container');
+      const appContainer = document.getElementById('app-container');
 
       window.firebase.auth.onAuthStateChanged((user) => {
         if (user) {
-          loginScreen.style.display = 'none';
-          mainApp.style.display = 'block';
-          carregarLivrosDoFirestore();
+          loginContainer.style.display = 'none';
+          appContainer.style.display = 'block';
+          carregarLivros();
         } else {
-          loginScreen.style.display = 'block';
-          mainApp.style.display = 'none';
+          loginContainer.style.display = 'flex';
+          appContainer.style.display = 'none';
         }
       });
     }
 
-    // Função de login CORRETA
+    // Login
     function login() {
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
 
-      // ✅ Agora sim: usamos a função importada
       window.firebase.signInWithEmailAndPassword(window.firebase.auth, email, password)
-        .then(() => {
-          alert('Login realizado com sucesso!');
-        })
-        .catch((error) => {
-          alert('Erro no login: ' + error.message);
-        });
+        .then(() => alert('Login feito com sucesso!'))
+        .catch(err => alert('Erro: ' + err.message));
     }
 
-    // Função de logout
+    // Logout
     function logout() {
-      window.firebase.signOut(window.firebase.auth).then(() => {
-        alert('Logout realizado com sucesso!');
-      });
+      window.firebase.signOut(window.firebase.auth)
+        .then(() => alert('Saiu com sucesso!'));
     }
 
     // Carregar livros do Firestore
-    function carregarLivrosDoFirestore() {
+    function carregarLivros() {
       window.firebase.onSnapshot(window.firebase.collection(window.firebase.dbFirestore, 'livros'), (snapshot) => {
         db.books = [];
-        snapshot.forEach((doc) => {
-          db.books.push({ id: doc.id, ...doc.data() });
-        });
-        updateBooksList();
+        snapshot.forEach(doc => db.books.push({ id: doc.id, ...doc.data() }));
+        atualizarLista();
       });
     }
 
-    // Salvar livro no Firestore
-    function salvarNoFirestore(livro) {
-      window.firebase.addDoc(window.firebase.collection(window.firebase.dbFirestore, 'livros'), livro)
-        .catch(e => console.error('Erro ao salvar:', e));
-    }
-
     // Atualizar lista
-    function updateBooksList() {
+    function atualizarLista() {
       const list = document.getElementById('booksList');
       list.innerHTML = '';
       db.books.forEach(book => {
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td><img src="${book.coverImage || 'https://via.placeholder.com/80x100'}" class="book-cover"></td>
+          <td><img src="${book.coverImage || 'https://via.placeholder.com/60x80'}" class="book-cover"></td>
           <td>${book.title}</td>
           <td>${book.author}</td>
           <td>${book.genre}</td>
-          <td>${book.copies}</td>
         `;
         list.appendChild(row);
       });
     }
 
-    // Formulário
-    document.getElementById('bookForm').addEventListener('submit', e => {
+    // Salvar livro
+    document.getElementById('bookForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const newBook = {
+      const file = document.getElementById('cover').files[0];
+      let coverImage = null;
+      if (file) coverImage = URL.createObjectURL(file);
+
+      const livro = {
         title: document.getElementById('title').value,
         author: document.getElementById('author').value,
         genre: document.getElementById('genre').value,
-        publisher: document.getElementById('publisher').value,
-        year: parseInt(document.getElementById('year').value),
-        copies: parseInt(document.getElementById('copies').value),
-        coverImage: document.getElementById('coverPreview').querySelector('img')?.src || null
+        coverImage
       };
-      salvarNoFirestore(newBook);
+
+      await window.firebase.addDoc(window.firebase.collection(window.firebase.dbFirestore, 'livros'), livro);
       document.getElementById('bookForm').reset();
       document.getElementById('coverPreview').innerHTML = '';
     });
 
-    // Botão limpar
-    document.getElementById('limparFormBtn').addEventListener('click', () => {
+    // Pré-visualização da capa
+    document.getElementById('cover').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          document.getElementById('coverPreview').innerHTML = `
+            <img src="${ev.target.result}" style="max-width: 100px; margin-top: 10px;">
+          `;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Limpar formulário
+    function limparFormulario() {
       document.getElementById('bookForm').reset();
       document.getElementById('coverPreview').innerHTML = '';
       document.getElementById('cover').value = '';
-    });
+    }
 
-    // OCR
-    document.getElementById('extractFromImage').addEventListener('click', async () => {
+    // OCR com imagem
+    async function preencherComImagem() {
       const file = document.getElementById('cover').files[0];
       if (!file) return alert('Selecione uma imagem');
       try {
         const result = await Tesseract.recognize(file, 'por+eng');
-        document.getElementById('title').value = extrairTitulo(result.data.text) || '';
-        document.getElementById('author').value = extrairAutor(result.data.text) || '';
+        const text = result.data.text;
+        document.getElementById('title').value = text.split('\n')[0]?.trim() || '';
       } catch (err) {
-        alert('Erro no OCR: ' + err.message);
+        alert('Erro no OCR');
       }
-    });
-
-    function extrairTitulo(texto) {
-      return texto.split('\n').filter(l => l.trim().length > 0)[0]?.trim() || '';
-    }
-    function extrairAutor(texto) {
-      return texto.split('\n').find(l => /autor|por|de/i.test(l))?.replace(/autor|por|de/i, '').trim() || '';
     }
 
-    // Busca
-    document.getElementById('searchBtn').addEventListener('click', () => {
-      const term = document.getElementById('searchBooks').value.toLowerCase();
-      updateBooksList();
-      const filtered = db.books.filter(b => 
-        b.title.toLowerCase().includes(term) || 
-        b.author.toLowerCase().includes(term)
-      );
-      // (lógica de atualização da lista filtrada)
-    });
+    // Exportar CSV
+    function exportarCSV() {
+      const csv = [
+        ['Título', 'Autor', 'Gênero'].join(';'),
+        ...db.books.map(b => [b.title, b.author, b.genre].join(';'))
+      ].join('\n');
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'livros.csv';
+      a.click();
+    }
+
+    // Gerar PDF
+    function gerarPDF() {
+      const doc = new jspdf.jsPDF();
+      doc.text("Relatório de Livros", 14, 20);
+      const tableData = db.books.map(b => [b.title, b.author, b.genre]);
+      doc.autoTable({
+        head: [['Título', 'Autor', 'Gênero']],
+        body: tableData,
+        startY: 30
+      });
+      doc.save('relatorio_livros.pdf');
+    }
 
     // Inicializar
-    document.addEventListener('DOMContentLoaded', verificarAutenticacao);
+    document.addEventListener('DOMContentLoaded', verificarLogin);
   </script>
 </body>
 </html>
