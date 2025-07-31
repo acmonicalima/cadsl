@@ -3,15 +3,14 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Cadastro Sala de Leitura</title>
-
-<!-- Firebase -->
+<title>Sala de Leitura | JOÃO VITTA</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<!-- Firebase SDKs (import via ES Modules) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+  import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
   import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-  // Configuração Firebase (sua config)
   const firebaseConfig = {
     apiKey: "AIzaSyC72gBi7POz-NqEMWKgu54S9vTyr0oFkzs",
     authDomain: "cadsl-3ef8f.firebaseapp.com",
@@ -21,581 +20,799 @@
     appId: "1:556775341028:web:c7c76dd36e7f17411925f1"
   };
 
-  // Inicializar Firebase
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // Exportar para global para uso no HTML
+  // Expõe funções e variáveis para uso global
+  window.firebaseApp = app;
   window.auth = auth;
   window.db = db;
-  window.signInWithEmailAndPassword = signInWithEmailAndPassword;
-  window.onAuthStateChanged = onAuthStateChanged;
-  window.signOut = signOut;
-  window.collection = collection;
-  window.addDoc = addDoc;
-  window.onSnapshot = onSnapshot;
-  window.deleteDoc = deleteDoc;
-  window.doc = doc;
+  window.firebaseFns = { onAuthStateChanged, signInWithEmailAndPassword, signOut, collection, addDoc, onSnapshot, deleteDoc, doc };
 </script>
 
-<!-- Tesseract OCR -->
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
-
-<!-- jsPDF + AutoTable -->
+<!-- jsPDF via script normal -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+<!-- Tesseract OCR -->
+<script src="https://unpkg.com/tesseract.js@v5.0.0/dist/tesseract.min.js"></script>
 
 <style>
-  /* Reset simples */
+  /* Cores vibrantes estilo material */
+  :root {
+    --primary: #1e88e5;
+    --primary-dark: #1565c0;
+    --secondary: #ff7043;
+    --background: #f3f6f9;
+    --text-primary: #222;
+    --text-light: #fff;
+  }
   * {
-    margin: 0; padding: 0; box-sizing: border-box;
+    box-sizing: border-box;
+    margin: 0; padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   }
   body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #f0f4f8;
-    color: #222;
+    background: var(--background);
+    color: var(--text-primary);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    padding: 10px;
   }
-  h1 {
-    margin: 20px 0;
-    color: #1565c0;
-    text-align: center;
-  }
-  /* Container central */
-  #app {
-    width: 100%;
-    max-width: 900px;
-  }
-
-  /* Login */
-  #loginSection {
-    background: #fff;
-    padding: 25px;
-    border-radius: 12px;
-    box-shadow: 0 0 12px rgba(21, 101, 192, 0.2);
-    margin-bottom: 20px;
-  }
-  #loginSection h2 {
-    color: #1565c0;
-    margin-bottom: 15px;
-    text-align: center;
-  }
-  #loginSection input[type="email"],
-  #loginSection input[type="password"] {
-    width: 100%;
-    padding: 10px;
-    margin: 8px 0 15px;
-    border: 2px solid #1565c0;
-    border-radius: 6px;
-    font-size: 1rem;
-    outline-offset: 2px;
-  }
-  #loginSection button {
-    width: 100%;
-    background-color: #1565c0;
-    color: white;
-    padding: 12px;
-    border: none;
-    border-radius: 8px;
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  #loginSection button:hover {
-    background-color: #0d47a1;
-  }
-  #logoutBtn {
-    margin-top: 15px;
-    background-color: #d32f2f;
-  }
-  #logoutBtn:hover {
-    background-color: #9a0007;
-  }
-  /* Formulário de livro */
-  #bookForm {
-    background: white;
+  header {
+    background-color: var(--primary);
+    color: var(--text-light);
     padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 0 15px rgb(21 101 192 / 0.15);
-    margin-bottom: 30px;
+    box-shadow: 0 3px 7px rgba(0,0,0,0.2);
   }
-  #bookForm h2 {
-    color: #1976d2;
-    margin-bottom: 20px;
-    text-align: center;
-  }
-  #bookForm label {
-    display: block;
-    margin: 10px 0 6px;
-    font-weight: 600;
-  }
-  #bookForm input, 
-  #bookForm select {
-    width: 100%;
-    padding: 8px 10px;
-    border: 2px solid #90caf9;
-    border-radius: 6px;
-    font-size: 1rem;
-    outline-offset: 2px;
-  }
-  #bookForm button {
-    margin-top: 18px;
-    background-color: #1976d2;
-    color: white;
-    padding: 12px;
-    border: none;
-    border-radius: 8px;
-    font-size: 1.1rem;
-    cursor: pointer;
-    width: 100%;
-    transition: background-color 0.3s ease;
-  }
-  #bookForm button:hover {
-    background-color: #004ba0;
-  }
-
-  /* Cards listagem */
-  #booksList {
-    display: grid;
-    grid-template-columns: repeat(auto-fit,minmax(280px,1fr));
-    gap: 18px;
-  }
-  .bookCard {
-    background: linear-gradient(135deg, #42a5f5, #478ed1);
-    color: white;
-    padding: 20px;
-    border-radius: 14px;
-    box-shadow: 0 6px 12px rgb(66 165 245 / 0.5);
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-  .bookCard h3 {
-    margin-bottom: 8px;
+  header h1 {
     font-weight: 700;
-    text-shadow: 1px 1px 3px #114f8e;
+    font-size: 1.8rem;
+    display: flex; align-items: center; gap: 10px;
   }
-  .bookCard p {
-    margin-bottom: 4px;
-    font-size: 0.95rem;
-    line-height: 1.3;
+  header h1 i {
+    color: var(--secondary);
   }
-  .bookCard small {
-    opacity: 0.8;
-  }
-  .bookCard button {
-    background-color: #d32f2f;
-    border: none;
-    border-radius: 8px;
-    padding: 8px;
+  nav {
     margin-top: 15px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: background-color 0.3s ease;
-    color: white;
-  }
-  .bookCard button:hover {
-    background-color: #9a0007;
-  }
-
-  /* Botões export */
-  #exportButtons {
     display: flex;
     gap: 15px;
+  }
+  nav button {
+    background: transparent;
+    border: none;
+    color: var(--text-light);
+    font-weight: 600;
+    cursor: pointer;
+    padding: 8px 16px;
+    border-radius: 25px;
+    transition: background-color 0.3s ease;
+    font-size: 1rem;
+  }
+  nav button.active,
+  nav button:hover {
+    background-color: var(--primary-dark);
+  }
+
+  main.container {
+    flex-grow: 1;
+    max-width: 1000px;
+    margin: 30px auto;
+    padding: 0 20px 40px;
+  }
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 25px 30px;
+    box-shadow: 0 4px 12px rgb(30 136 229 / 0.15);
     margin-bottom: 30px;
   }
-  #exportButtons button {
-    flex: 1;
-    padding: 14px;
-    font-size: 1.1rem;
+  h2 {
+    margin-bottom: 20px;
+    color: var(--primary-dark);
+  }
+  form .form-group {
+    margin-bottom: 18px;
+  }
+  label {
+    display: block;
     font-weight: 600;
-    border-radius: 10px;
-    border: none;
+    margin-bottom: 6px;
+    color: var(--primary-dark);
+  }
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  select,
+  input[type="file"] {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 1rem;
+    border: 2px solid var(--primary);
+    border-radius: 8px;
+    transition: border-color 0.3s ease;
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--secondary);
+  }
+  .btn {
     cursor: pointer;
-    background: linear-gradient(45deg, #1565c0, #42a5f5);
-    color: white;
-    transition: background 0.4s ease;
+    font-weight: 700;
+    border-radius: 25px;
+    padding: 10px 24px;
+    font-size: 1rem;
+    border: none;
+    transition: background-color 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
   }
-  #exportButtons button:hover {
-    background: linear-gradient(45deg, #0d47a1, #90caf9);
+  .btn-primary {
+    background-color: var(--primary);
+    color: var(--text-light);
   }
-
-  /* Loader OCR */
-  #ocrStatus {
-    margin-top: 10px;
+  .btn-primary:hover {
+    background-color: var(--primary-dark);
+  }
+  .btn-secondary {
+    background-color: var(--secondary);
+    color: var(--text-light);
+  }
+  .btn-secondary:hover {
+    background-color: #e64a19;
+  }
+  .btn-warning {
+    background-color: #ffa726;
+    color: #222;
+  }
+  .btn-warning:hover {
+    background-color: #fb8c00;
+  }
+  .flex-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .flex-1 {
+    flex: 1;
+    min-width: 200px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 15px;
+    border-bottom: 1px solid #ddd;
+    font-size: 0.95rem;
+  }
+  th {
+    background-color: var(--primary);
+    color: var(--text-light);
+  }
+  tr:hover {
+    background-color: var(--background);
+  }
+  .book-cover {
+    width: 70px;
+    height: 90px;
+    object-fit: cover;
+    border-radius: 6px;
+  }
+  .status-available {
+    background-color: #dcedc8;
+    color: #558b2f;
+    padding: 5px 10px;
+    border-radius: 20px;
     font-weight: 600;
-    color: #1565c0;
-    text-align: center;
+    font-size: 0.85rem;
   }
-
-  /* Responsivo */
-  @media(max-width: 400px){
-    #bookForm button, #exportButtons button {
-      font-size: 1rem;
-      padding: 10px;
+  .status-loaned {
+    background-color: #ffe0b2;
+    color: #ef6c00;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+  /* Search input and button */
+  .search-container {
+    margin-bottom: 15px;
+    display: flex;
+    gap: 10px;
+  }
+  .search-container input {
+    flex-grow: 1;
+  }
+  /* Responsive */
+  @media (max-width: 600px) {
+    nav {
+      flex-direction: column;
+      gap: 10px;
     }
+    .flex-row {
+      flex-direction: column;
+    }
+  }
+  /* Modal */
+  .modal {
+    display: none;
+    position: fixed;
+    top:0; left:0; right:0; bottom:0;
+    background: rgba(0,0,0,0.5);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  .modal.active {
+    display: flex;
+  }
+  .modal-content {
+    background: white;
+    border-radius: 12px;
+    padding: 20px 25px;
+    max-width: 450px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+  }
+  .modal-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    border: none;
+    background: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--primary-dark);
+  }
+  .modal h3 {
+    margin-bottom: 18px;
   }
 </style>
 </head>
 <body>
 
-<div id="app">
-
-  <h1>Sala de Leitura - Cadastro de Livros</h1>
-
-  <!-- Login -->
-  <section id="loginSection">
-    <h2>Login</h2>
-    <input id="email" type="email" placeholder="E-mail" required />
-    <input id="password" type="password" placeholder="Senha" required />
-    <button id="loginBtn">Entrar</button>
-    <button id="logoutBtn" style="display:none;">Sair</button>
-    <p id="loginMessage" style="color: red; margin-top:10px;"></p>
-  </section>
-
-  <!-- Formulário cadastro livro -->
-  <section id="bookForm" style="display:none;">
-    <h2>Cadastrar Livro</h2>
-    <label for="title">Título</label>
-    <input id="title" type="text" placeholder="Título do livro" required />
-
-    <label for="author">Autor</label>
-    <input id="author" type="text" placeholder="Autor do livro" required />
-
-    <label for="genre">Gênero</label>
-    <select id="genre" required>
-      <option value="">Selecione...</option>
-      <option value="Romance">Romance</option>
-      <option value="Ficção Científica">Ficção Científica</option>
-      <option value="Fantasia">Fantasia</option>
-      <option value="Terror">Terror</option>
-      <option value="Mistério">Mistério</option>
-      <option value="Suspense">Suspense</option>
-      <option value="Aventura">Aventura</option>
-      <option value="Ficção Histórica">Ficção Histórica</option>
-      <option value="Literatura Infantil">Literatura Infantil</option>
-      <option value="Juvenil">Juvenil</option>
-      <option value="Realismo Mágico">Realismo Mágico</option>
-      <option value="Poesia">Poesia</option>
-      <option value="Teatro">Teatro</option>
-      <option value="Contos">Contos</option>
-      <option value="Crônicas">Crônicas</option>
-      <option value="Graphic Novel">Graphic Novel</option>
-      <option value="Biografia">Biografia</option>
-      <option value="Autobiografia">Autobiografia</option>
-      <option value="Ensaios">Ensaios</option>
-      <option value="História">História</option>
-      <option value="Ciência">Ciência</option>
-      <option value="Autoajuda">Autoajuda</option>
-      <option value="Desenvolvimento Pessoal">Desenvolvimento Pessoal</option>
-      <option value="Educação">Educação</option>
-      <option value="Negócios">Negócios</option>
-      <option value="Economia">Economia</option>
-      <option value="Tecnologia">Tecnologia</option>
-      <option value="Programação">Programação</option>
-      <option value="Saúde">Saúde</option>
-      <option value="Bem-Estar">Bem-Estar</option>
-      <option value="Psicologia">Psicologia</option>
-      <option value="Religião">Religião</option>
-      <option value="Espiritualidade">Espiritualidade</option>
-      <option value="Arte">Arte</option>
-      <option value="Cultura">Cultura</option>
-      <option value="Música">Música</option>
-      <option value="Cinema">Cinema</option>
-      <option value="Fotografia">Fotografia</option>
-      <option value="Viagem">Viagem</option>
-      <option value="Culinária">Culinária</option>
-      <option value="Direito">Direito</option>
-      <option value="Política">Política</option>
-      <option value="Manuais Técnicos">Manuais Técnicos</option>
-      <option value="Dicionários">Dicionários</option>
-      <option value="Enciclopédias">Enciclopédias</option>
-      <option value="Livros de Colorir">Livros de Colorir</option>
-      <option value="Planners">Planners</option>
-      <option value="Livros Interativos">Livros Interativos</option>
-      <option value="Quebra-Cabeças">Quebra-Cabeças</option>
-      <option value="Livros-Objeto">Livros-Objeto</option>
-    </select>
-
-    <label for="publisher">Editora</label>
-    <input id="publisher" type="text" placeholder="Editora" />
-
-    <label for="year">Ano</label>
-    <input id="year" type="number" placeholder="Ano de publicação" min="1500" max="2099" />
-
-    <label for="copies">Exemplares</label>
-    <input id="copies" type="number" placeholder="Quantidade de exemplares" min="1" value="1" />
-
-    <label for="coverImage">Capa (imagem para OCR)</label>
-    <input id="coverImage" type="file" accept="image/*" />
-
-    <div id="ocrStatus"></div>
-
-    <button id="addBookBtn">Adicionar Livro</button>
-  </section>
-
-  <!-- Botões exportação -->
-  <div id="exportButtons" style="display:none;">
-    <button id="exportCSVBtn">Exportar CSV</button>
-    <button id="exportPDFBtn">Gerar PDF</button>
+<!-- Login Screen -->
+<div id="login-screen" style="min-height: 100vh; display:flex; justify-content:center; align-items:center; background: var(--background);">
+  <div style="background: white; padding: 30px 40px; border-radius: 14px; box-shadow: 0 8px 20px rgb(30 136 229 / 0.15); max-width: 360px; width: 90%; text-align:center;">
+    <h2 style="margin-bottom:15px; color: var(--primary);"><i class="fas fa-book"></i> Sala de Leitura</h2>
+    <input id="email" type="email" placeholder="E-mail" style="width: 100%; padding:12px; margin-bottom:15px; border: 2px solid var(--primary); border-radius: 8px; font-size: 1rem;" />
+    <input id="password" type="password" placeholder="Senha" style="width: 100%; padding:12px; margin-bottom:20px; border: 2px solid var(--primary); border-radius: 8px; font-size: 1rem;" />
+    <button id="loginBtn" class="btn btn-primary" style="width: 100%; font-weight: 700; font-size: 1.1rem;">Entrar</button>
   </div>
-
-  <!-- Listagem -->
-  <section id="booksList"></section>
-
 </div>
 
-<script type="module">
-  import { jsPDF } from "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
-  import "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js";
+<!-- Main App -->
+<div id="main-app" style="display:none; flex-direction: column; min-height: 100vh;">
+<header>
+  <div class="container">
+    <h1><i class="fas fa-book"></i> Sala de Leitura | JOÃO VITTA</h1>
+    <nav>
+      <button class="active" data-tab="tab-books">Livros</button>
+      <button data-tab="tab-reports">Relatórios</button>
+      <button data-tab="tab-settings">Configurações</button>
+      <button id="logoutBtn" style="margin-left:auto; background:transparent; border:none; color:#fff; font-weight:600; cursor:pointer;">Sair <i class="fas fa-sign-out-alt"></i></button>
+    </nav>
+  </div>
+</header>
 
-  const auth = window.auth;
-  const db = window.db;
-  const signInWithEmailAndPassword = window.signInWithEmailAndPassword;
-  const onAuthStateChanged = window.onAuthStateChanged;
-  const signOut = window.signOut;
-  const collection = window.collection;
-  const addDoc = window.addDoc;
-  const onSnapshot = window.onSnapshot;
-  const deleteDoc = window.deleteDoc;
-  const docFunc = window.doc;
+<main class="container">
 
-  const loginSection = document.getElementById('loginSection');
-  const bookForm = document.getElementById('bookForm');
-  const booksList = document.getElementById('booksList');
-  const exportButtons = document.getElementById('exportButtons');
-  const loginBtn = document.getElementById('loginBtn');
-  const logoutBtn = document.getElementById('logoutBtn');
-  const loginMessage = document.getElementById('loginMessage');
+  <!-- Livros -->
+  <section id="tab-books" class="tab-content" style="display: block;">
+    <div class="card">
+      <h2><i class="fas fa-book"></i> Cadastrar Novo Livro</h2>
+      <form id="bookForm">
+        <div class="flex-row">
+          <div class="form-group flex-1">
+            <label for="title">Título</label>
+            <input id="title" type="text" required />
+          </div>
+          <div class="form-group flex-1">
+            <label for="author">Autor</label>
+            <input id="author" type="text" required />
+          </div>
+        </div>
 
-  const emailInput = document.getElementById('email');
-  const passwordInput = document.getElementById('password');
+        <div class="flex-row">
+          <div class="form-group flex-1">
+            <label for="genre">Gênero</label>
+            <select id="genre" required>
+              <option value="" disabled selected>Selecione...</option>
+              <option>Romance</option>
+              <option>Ficção Científica</option>
+              <option>Fantasia</option>
+              <option>Terror</option>
+              <option>Mistério</option>
+              <option>Suspense</option>
+              <option>Aventura</option>
+              <option>Ficção Histórica</option>
+              <option>Literatura Infantil</option>
+              <option>Juvenil</option>
+              <option>Realismo Mágico</option>
+              <option>Poesia</option>
+              <option>Teatro</option>
+              <option>Contos</option>
+              <option>Crônicas</option>
+              <option>Graphic Novel</option>
+              <option>Biografia</option>
+              <option>Autobiografia</option>
+              <option>Ensaios</option>
+              <option>História</option>
+              <option>Ciência</option>
+              <option>Autoajuda</option>
+              <option>Desenvolvimento Pessoal</option>
+              <option>Educação</option>
+              <option>Negócios</option>
+              <option>Economia</option>
+              <option>Tecnologia</option>
+              <option>Programação</option>
+              <option>Saúde</option>
+              <option>Bem-Estar</option>
+              <option>Psicologia</option>
+              <option>Religião</option>
+              <option>Espiritualidade</option>
+              <option>Arte</option>
+              <option>Cultura</option>
+              <option>Música</option>
+              <option>Cinema</option>
+              <option>Fotografia</option>
+              <option>Viagem</option>
+              <option>Culinária</option>
+              <option>Direito</option>
+              <option>Política</option>
+              <option>Manuais Técnicos</option>
+              <option>Dicionários</option>
+              <option>Enciclopédias</option>
+              <option>Livros de Colorir</option>
+              <option>Planners</option>
+              <option>Livros Interativos</option>
+              <option>Quebra-Cabeças</option>
+              <option>Livros-Objeto</option>
+            </select>
+          </div>
+          <div class="form-group flex-1">
+            <label for="publisher">Editora</label>
+            <input id="publisher" type="text" required />
+          </div>
+        </div>
 
-  const titleInput = document.getElementById('title');
-  const authorInput = document.getElementById('author');
-  const genreSelect = document.getElementById('genre');
-  const publisherInput = document.getElementById('publisher');
-  const yearInput = document.getElementById('year');
-  const copiesInput = document.getElementById('copies');
-  const coverImageInput = document.getElementById('coverImage');
-  const ocrStatus = document.getElementById('ocrStatus');
+        <div class="flex-row">
+          <div class="form-group flex-1">
+            <label for="year">Ano</label>
+            <input id="year" type="number" min="1900" max="2099" required />
+          </div>
+          <div class="form-group flex-1">
+            <label for="copies">Exemplares</label>
+            <input id="copies" type="number" min="1" required />
+          </div>
+        </div>
 
-  const addBookBtn = document.getElementById('addBookBtn');
-  const exportCSVBtn = document.getElementById('exportCSVBtn');
-  const exportPDFBtn = document.getElementById('exportPDFBtn');
+        <div class="form-group">
+          <label for="cover">Capa do Livro (imagem)</label>
+          <input id="cover" type="file" accept="image/*" />
+          <div id="coverPreview" style="margin-top: 10px;"></div>
+        </div>
 
-  // Coleção Firestore
-  const booksCollection = collection(db, "books");
+        <div class="flex-row" style="gap: 15px;">
+          <button type="button" class="btn btn-secondary" id="extractFromImage"><i class="fas fa-image"></i> Preencher com Imagem (OCR)</button>
+          <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar Livro</button>
+          <button type="button" class="btn btn-warning" id="clearFormBtn"><i class="fas fa-eraser"></i> Limpar Formulário</button>
+        </div>
+      </form>
+    </div>
 
-  // Cache local para livros
-  let localBooksCache = [];
+    <div class="card">
+      <h2><i class="fas fa-list"></i> Lista de Livros</h2>
+      <div class="search-container">
+        <input type="text" id="searchBooks" placeholder="Buscar por título ou autor..." />
+        <button class="btn btn-primary" id="searchBtn"><i class="fas fa-search"></i> Buscar</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Capa</th>
+            <th>Título</th>
+            <th>Autor</th>
+            <th>Gênero</th>
+            <th>Editora</th>
+            <th>Ano</th>
+            <th>Exemplares</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="booksList"></tbody>
+      </table>
+    </div>
+  </section>
 
-  // Login
-  loginBtn.addEventListener('click', () => {
-    const email = emailInput.value.trim();
-    const password = passwordInput.value.trim();
-    loginMessage.textContent = "";
-    if (!email || !password) {
-      loginMessage.textContent = "Informe email e senha.";
-      return;
+  <!-- Relatórios -->
+  <section id="tab-reports" class="tab-content" style="display:none;">
+    <div class="card">
+      <h2><i class="fas fa-chart-bar"></i> Relatórios</h2>
+      <p>Relatórios gerenciais básicos</p>
+      <div style="display:flex; gap: 25px; margin-top: 20px; flex-wrap: wrap;">
+        <div style="background: #81c784; color:#1b5e20; padding: 20px 25px; border-radius: 12px; flex: 1; min-width: 150px; text-align: center;">
+          <h3 id="totalBooksCount" style="font-size: 2rem; margin-bottom: 5px;">0</h3>
+          <p>Livros cadastrados</p>
+        </div>
+        <div style="background: #4fc3f7; color:#01579b; padding: 20px 25px; border-radius: 12px; flex: 1; min-width: 150px; text-align: center;">
+          <h3 id="totalCopiesCount" style="font-size: 2rem; margin-bottom: 5px;">0</h3>
+          <p>Exemplares totais</p>
+        </div>
+      </div>
+      <div style="margin-top: 25px;">
+        <button class="btn btn-primary" id="exportPdfBtn"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
+        <button class="btn btn-secondary" id="exportCsvBtn"><i class="fas fa-file-csv"></i> Exportar CSV</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Configurações -->
+  <section id="tab-settings" class="tab-content" style="display:none;">
+    <div class="card">
+      <h2><i class="fas fa-cog"></i> Configurações</h2>
+      <p>Configurações do sistema</p>
+      <!-- Pode adicionar opções aqui -->
+    </div>
+  </section>
+
+</main>
+</div>
+
+<script>
+  // Aguarda que o módulo Firebase tenha carregado e exposto na window
+  document.addEventListener('DOMContentLoaded', () => {
+    const {
+      auth,
+      db,
+      firebaseFns: { onAuthStateChanged, signInWithEmailAndPassword, signOut, collection, addDoc, onSnapshot, deleteDoc, doc }
+    } = window;
+
+    const loginScreen = document.getElementById('login-screen');
+    const mainApp = document.getElementById('main-app');
+
+    const loginBtn = document.getElementById('loginBtn');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    const bookForm = document.getElementById('bookForm');
+    const titleInput = document.getElementById('title');
+    const authorInput = document.getElementById('author');
+    const genreSelect = document.getElementById('genre');
+    const publisherInput = document.getElementById('publisher');
+    const yearInput = document.getElementById('year');
+    const copiesInput = document.getElementById('copies');
+    const coverInput = document.getElementById('cover');
+    const coverPreview = document.getElementById('coverPreview');
+
+    const extractFromImageBtn = document.getElementById('extractFromImage');
+    const clearFormBtn = document.getElementById('clearFormBtn');
+
+    const booksList = document.getElementById('booksList');
+
+    const tabsButtons = document.querySelectorAll('nav button[data-tab]');
+    const tabsSections = document.querySelectorAll('.tab-content');
+
+    const searchInput = document.getElementById('searchBooks');
+    const searchBtn = document.getElementById('searchBtn');
+
+    const exportPdfBtn = document.getElementById('exportPdfBtn');
+    const exportCsvBtn = document.getElementById('exportCsvBtn');
+
+    // Variáveis para dados
+    let currentUser = null;
+    let booksData = [];
+
+    // UI funções
+    function switchTab(tabName) {
+      tabsButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tabName));
+      tabsSections.forEach(section => section.style.display = (section.id === tabName ? 'block' : 'none'));
     }
-    signInWithEmailAndPassword(auth, email, password)
-      .then(() => {
-        // Sucesso, auth state vai mudar e exibir conteúdo
-      })
-      .catch((error) => {
-        loginMessage.textContent = "Erro: " + error.message;
+
+    tabsButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        switchTab(btn.dataset.tab);
       });
-  });
-
-  logoutBtn.addEventListener('click', () => {
-    signOut(auth);
-  });
-
-  // Monitorar login
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      loginSection.style.display = "none";
-      bookForm.style.display = "block";
-      exportButtons.style.display = "flex";
-      loadBooksRealtime();
-    } else {
-      loginSection.style.display = "block";
-      bookForm.style.display = "none";
-      exportButtons.style.display = "none";
-      booksList.innerHTML = "";
-    }
-  });
-
-  // Função para carregar livros em tempo real e atualizar cache
-  function loadBooksRealtime() {
-    onSnapshot(booksCollection, (snapshot) => {
-      localBooksCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      renderBooks(localBooksCache);
-    }, (error) => {
-      console.error("Erro ao carregar livros:", error);
     });
-  }
 
-  // Renderizar livros na tela
-  function renderBooks(books) {
-    booksList.innerHTML = "";
-    if (books.length === 0) {
-      booksList.innerHTML = "<p>Nenhum livro cadastrado.</p>";
-      return;
+    // Login handler
+    loginBtn.addEventListener('click', async () => {
+      const email = emailInput.value.trim();
+      const password = passwordInput.value.trim();
+      if (!email || !password) {
+        alert('Preencha e-mail e senha');
+        return;
+      }
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch (err) {
+        alert('Erro no login: ' + err.message);
+      }
+    });
+
+    logoutBtn.addEventListener('click', async () => {
+      await signOut(auth);
+    });
+
+    onAuthStateChanged(auth, user => {
+      currentUser = user;
+      if (user) {
+        loginScreen.style.display = 'none';
+        mainApp.style.display = 'flex';
+        switchTab('tab-books');
+        loadBooksRealtime();
+      } else {
+        loginScreen.style.display = 'flex';
+        mainApp.style.display = 'none';
+        booksList.innerHTML = '';
+        booksData = [];
+      }
+    });
+
+    // Preview da capa
+    coverInput.addEventListener('change', () => {
+      const file = coverInput.files[0];
+      if (!file) {
+        coverPreview.innerHTML = '';
+        return;
+      }
+      const url = URL.createObjectURL(file);
+      coverPreview.innerHTML = `<img src="${url}" alt="Preview Capa" style="width:120px; height:auto; border-radius: 8px; object-fit: cover;" />`;
+    });
+
+    // Função para limpar formulário
+    function clearForm() {
+      bookForm.reset();
+      coverPreview.innerHTML = '';
     }
-    books.forEach(book => {
-      const card = document.createElement('article');
-      card.className = 'bookCard';
-      card.innerHTML = `
-        <h3>${book.title}</h3>
-        <p><strong>Autor:</strong> ${book.author}</p>
-        <p><strong>Gênero:</strong> ${book.genre}</p>
-        <p><strong>Editora:</strong> ${book.publisher || '-'}</p>
-        <p><strong>Ano:</strong> ${book.year || '-'}</p>
-        <p><strong>Exemplares:</strong> ${book.copies || 1}</p>
-        <button data-id="${book.id}">Excluir</button>
-      `;
-      const delBtn = card.querySelector('button');
-      delBtn.onclick = async () => {
-        if (confirm(`Excluir o livro "${book.title}"?`)) {
-          try {
-            await deleteDoc(docFunc(db, "books", book.id));
-          } catch (err) {
-            alert("Erro ao excluir livro: " + err.message);
-          }
-        }
+    clearFormBtn.addEventListener('click', clearForm);
+
+    // Função para salvar livro no Firestore
+    async function saveBook(book) {
+      try {
+        await addDoc(collection(db, 'books'), book);
+        alert('Livro salvo com sucesso!');
+      } catch (err) {
+        alert('Erro ao salvar livro: ' + err.message);
+      }
+    }
+
+    // Form submit
+    bookForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      if (!titleInput.value.trim() || !authorInput.value.trim()) {
+        alert('Título e Autor são obrigatórios');
+        return;
+      }
+      if (!genreSelect.value) {
+        alert('Selecione um gênero');
+        return;
+      }
+      if (!publisherInput.value.trim() || !yearInput.value || !copiesInput.value) {
+        alert('Preencha todos os campos corretamente');
+        return;
+      }
+
+      // Capa: converte a imagem em base64 para salvar
+      let coverBase64 = '';
+      if (coverInput.files.length > 0) {
+        coverBase64 = await toBase64(coverInput.files[0]);
+      }
+
+      const newBook = {
+        title: titleInput.value.trim(),
+        author: authorInput.value.trim(),
+        genre: genreSelect.value,
+        publisher: publisherInput.value.trim(),
+        year: Number(yearInput.value),
+        copies: Number(copiesInput.value),
+        cover: coverBase64,
+        createdAt: new Date()
       };
-      booksList.appendChild(card);
+
+      await saveBook(newBook);
+      clearForm();
     });
-  }
 
-  // Adicionar livro no Firestore
-  addBookBtn.addEventListener('click', async () => {
-    const title = titleInput.value.trim();
-    const author = authorInput.value.trim();
-    const genre = genreSelect.value;
-    const publisher = publisherInput.value.trim();
-    const year = parseInt(yearInput.value);
-    const copies = parseInt(copiesInput.value);
-
-    if (!title || !author || !genre) {
-      alert("Preencha título, autor e gênero.");
-      return;
+    // converte arquivo imagem para base64
+    function toBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+      });
     }
 
-    try {
-      await addDoc(booksCollection, {
-        title,
-        author,
-        genre,
-        publisher: publisher || null,
-        year: isNaN(year) ? null : year,
-        copies: isNaN(copies) || copies < 1 ? 1 : copies
+    // OCR para preencher título e autor da capa
+    extractFromImageBtn.addEventListener('click', async () => {
+      if (coverInput.files.length === 0) {
+        alert('Selecione uma imagem da capa primeiro');
+        return;
+      }
+      const file = coverInput.files[0];
+      const url = URL.createObjectURL(file);
+
+      extractFromImageBtn.disabled = true;
+      extractFromImageBtn.textContent = 'Extraindo texto...';
+
+      try {
+        const { data: { text } } = await Tesseract.recognize(url, 'por', {
+          logger: m => console.log(m)
+        });
+        // tentar extrair título e autor via heurística simples:
+        // título = primeira linha, autor = segunda linha
+        const lines = text.trim().split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length >= 1) titleInput.value = lines[0];
+        if (lines.length >= 2) authorInput.value = lines[1];
+        alert('Texto extraído da imagem! Confira e ajuste se precisar.');
+      } catch (e) {
+        alert('Erro ao extrair texto: ' + e.message);
+      } finally {
+        extractFromImageBtn.disabled = false;
+        extractFromImageBtn.innerHTML = '<i class="fas fa-image"></i> Preencher com Imagem (OCR)';
+      }
+    });
+
+    // Realtime Firestore snapshot para listar livros
+    function loadBooksRealtime() {
+      const colRef = collection(db, 'books');
+      onSnapshot(colRef, (snapshot) => {
+        booksData = [];
+        booksList.innerHTML = '';
+        snapshot.forEach(docSnap => {
+          const book = { id: docSnap.id, ...docSnap.data() };
+          booksData.push(book);
+        });
+        renderBooks(booksData);
+        updateReports();
+      }, (error) => {
+        alert('Erro ao carregar livros: ' + error.message);
+      });
+    }
+
+    // Renderiza tabela de livros
+    function renderBooks(books) {
+      booksList.innerHTML = '';
+      if (books.length === 0) {
+        booksList.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px; color:#999;">Nenhum livro cadastrado</td></tr>`;
+        return;
+      }
+      for (const book of books) {
+        const tr = document.createElement('tr');
+
+        tr.innerHTML = `
+          <td><img src="${book.cover || 'https://via.placeholder.com/70x90?text=Sem+Capa'}" alt="Capa" class="book-cover"/></td>
+          <td>${escapeHtml(book.title)}</td>
+          <td>${escapeHtml(book.author)}</td>
+          <td>${escapeHtml(book.genre)}</td>
+          <td>${escapeHtml(book.publisher)}</td>
+          <td>${book.year}</td>
+          <td>${book.copies}</td>
+          <td>
+            <button class="btn btn-warning btn-sm btn-delete" data-id="${book.id}" title="Excluir"><i class="fas fa-trash"></i></button>
+          </td>
+        `;
+        booksList.appendChild(tr);
+      }
+
+      // delete event
+      document.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.id;
+          if (confirm('Deseja mesmo excluir este livro?')) {
+            try {
+              await deleteDoc(doc(db, 'books', id));
+            } catch (err) {
+              alert('Erro ao excluir: ' + err.message);
+            }
+          }
+        });
+      });
+    }
+
+    // Busca simples (filtra livros no client)
+    searchBtn.addEventListener('click', () => {
+      const term = searchInput.value.trim().toLowerCase();
+      if (!term) {
+        renderBooks(booksData);
+        return;
+      }
+      const filtered = booksData.filter(b =>
+        b.title.toLowerCase().includes(term) ||
+        b.author.toLowerCase().includes(term)
+      );
+      renderBooks(filtered);
+    });
+
+    // Exportar PDF usando jsPDF + autotable
+    exportPdfBtn.addEventListener('click', () => {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      doc.setFontSize(18);
+      doc.text("Relatório de Livros", 14, 22);
+      doc.setFontSize(11);
+      doc.setTextColor(100);
+
+      const headers = [["Título", "Autor", "Gênero", "Editora", "Ano", "Exemplares"]];
+      const data = booksData.map(b => [
+        b.title,
+        b.author,
+        b.genre,
+        b.publisher,
+        b.year.toString(),
+        b.copies.toString()
+      ]);
+
+      doc.autoTable({
+        startY: 30,
+        head: headers,
+        body: data,
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [30, 136, 229] }
       });
 
-      // Limpar form
-      titleInput.value = "";
-      authorInput.value = "";
-      genreSelect.value = "";
-      publisherInput.value = "";
-      yearInput.value = "";
-      copiesInput.value = "1";
-      coverImageInput.value = "";
-      ocrStatus.textContent = "";
-
-      alert("Livro adicionado com sucesso!");
-    } catch (err) {
-      alert("Erro ao adicionar livro: " + err.message);
-    }
-  });
-
-  // OCR da imagem da capa para preencher título e autor automaticamente
-  coverImageInput.addEventListener('change', () => {
-    const file = coverImageInput.files[0];
-    if (!file) return;
-    ocrStatus.textContent = "Analisando imagem para capturar texto...";
-
-    Tesseract.recognize(
-      file,
-      'por',
-      { logger: m => {
-        // Opcional: console.log(m);
-      } }
-    ).then(({ data: { text } }) => {
-      ocrStatus.textContent = "OCR concluído. Verifique e corrija os campos.";
-      // Simples heurística: tenta separar linhas e pegar título e autor das primeiras linhas
-      const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-      if (lines.length > 0) titleInput.value = lines[0];
-      if (lines.length > 1) authorInput.value = lines[1];
-    }).catch((e) => {
-      ocrStatus.textContent = "Erro no OCR: " + e.message;
-    });
-  });
-
-  // Exportar CSV
-  exportCSVBtn.addEventListener('click', () => {
-    if (localBooksCache.length === 0) {
-      alert("Não há livros para exportar.");
-      return;
-    }
-    const csvRows = [];
-    csvRows.push(['Título','Autor','Gênero','Editora','Ano','Exemplares'].join(';'));
-    localBooksCache.forEach(b => {
-      csvRows.push([
-        b.title || '',
-        b.author || '',
-        b.genre || '',
-        b.publisher || '',
-        b.year || '',
-        b.copies || ''
-      ].join(';'));
-    });
-    const csvContent = '\uFEFF' + csvRows.join('\n'); // BOM para Excel
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `livros_sala_leitura_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-
-  // Exportar PDF
-  exportPDFBtn.addEventListener('click', () => {
-    if (localBooksCache.length === 0) {
-      alert("Não há livros para gerar relatório.");
-      return;
-    }
-    const doc = new jsPDF();
-    const date = new Date().toLocaleDateString('pt-BR');
-    doc.setFontSize(18);
-    doc.text("Sala de Leitura - Relatório de Livros", 14, 20);
-    doc.setFontSize(11);
-    doc.text(`Gerado em: ${date}`, 14, 30);
-
-    const tableData = localBooksCache.map(b => [
-      b.title || '',
-      b.author || '',
-      b.genre || '',
-      b.publisher || '',
-      b.year ? b.year.toString() : '',
-      b.copies ? b.copies.toString() : ''
-    ]);
-
-    doc.autoTable({
-      head: [['Título', 'Autor', 'Gênero', 'Editora', 'Ano', 'Exemplares']],
-      body: tableData,
-      startY: 40,
-      styles: { fontSize: 8 }
+      doc.save("relatorio_livros.pdf");
     });
 
-    doc.save(`relatorio_livros_${date}.pdf`);
+    // Exportar CSV simples
+    exportCsvBtn.addEventListener('click', () => {
+      const csvRows = [];
+      const headers = ["Título", "Autor", "Gênero", "Editora", "Ano", "Exemplares"];
+      csvRows.push(headers.join(','));
+
+      booksData.forEach(b => {
+        const row = [
+          `"${b.title.replace(/"/g, '""')}"`,
+          `"${b.author.replace(/"/g, '""')}"`,
+          `"${b.genre.replace(/"/g, '""')}"`,
+          `"${b.publisher.replace(/"/g, '""')}"`,
+          b.year,
+          b.copies
+        ];
+        csvRows.push(row.join(','));
+      });
+
+      const csvString = csvRows.join('\n');
+      const blob = new Blob([csvString], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'relatorio_livros.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    // Atualiza os números nos relatórios
+    function updateReports() {
+      document.getElementById('totalBooksCount').textContent = booksData.length;
+      const totalCopies = booksData.reduce((acc, b) => acc + (b.copies || 0), 0);
+      document.getElementById('totalCopiesCount').textContent = totalCopies;
+    }
+
+    // Função de escape para segurança na inserção de texto
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
   });
 </script>
 
