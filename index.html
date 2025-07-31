@@ -5,17 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sala de Leitura | JOÃO VITTA</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Bibliotecas para PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    <!-- Tesseract para OCR -->
-    <script src="https://unpkg.com/tesseract.js@v5.0.0/dist/tesseract.min.js"></script>
     <!-- Firebase SDK -->
     <script type="module">
       // Import do Firebase
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
       import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-      import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+      import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
       // Configuração do Firebase
       const firebaseConfig = {
@@ -35,6 +30,11 @@
       // Exporta para usar no resto do código
       window.firebase = { auth, dbFirestore };
     </script>
+    <!-- Bibliotecas para PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <!-- Tesseract para OCR -->
+    <script src="https://unpkg.com/tesseract.js@v5.0.0/dist/tesseract.min.js"></script>
     <style>
         :root {
             --primary: #4a6fa5;
@@ -341,17 +341,7 @@
         <h1>
           <i class="fas fa-book"></i> Sala de Leitura | JOÃO VITTA
         </h1>
-        <nav>
-          <button class="active" data-tab="books">
-            <i class="fas fa-book"></i> Livros
-          </button>
-          <button data-tab="reports">
-            <i class="fas fa-chart-bar"></i> Relatórios
-          </button>
-          <button data-tab="settings">
-            <i class="fas fa-cog"></i> Configurações
-          </button>
-        </nav>
+        <button id="logoutBtn" onclick="logout()" style="background: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; float: right;">Sair</button>
       </div>
     </header>
 
@@ -538,9 +528,9 @@
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
 
-      window.firebase.auth.signInWithEmailAndPassword(email, password)
+      signInWithEmailAndPassword(window.firebase.auth, email, password)
         .then(() => {
-          alert('Login realizado com sucesso!');
+          console.log('Login bem-sucedido');
         })
         .catch((error) => {
           alert('Erro no login: ' + error.message);
@@ -549,7 +539,7 @@
 
     // Função de logout
     function logout() {
-      window.firebase.auth.signOut().then(() => {
+      signOut(window.firebase.auth).then(() => {
         alert('Logout realizado com sucesso!');
       });
     }
@@ -557,7 +547,7 @@
     // Salvar livro no Firestore
     async function salvarNoFirestore(livro) {
       try {
-        await window.firebase.firestore.collection('livros').add(livro);
+        await addDoc(collection(window.firebase.dbFirestore, 'livros'), livro);
       } catch (e) {
         console.error('Erro ao salvar no Firestore:', e);
       }
@@ -565,7 +555,7 @@
 
     // Carregar livros do Firestore em tempo real
     function carregarLivrosDoFirestore() {
-      window.firebase.firestore.collection('livros').onSnapshot((snapshot) => {
+      onSnapshot(collection(window.firebase.dbFirestore, 'livros'), (snapshot) => {
         db.books = [];
         snapshot.forEach((doc) => {
           db.books.push({ id: doc.id, ...doc.data() });
@@ -629,10 +619,7 @@
         coverImage
       };
 
-      // Salva no Firestore
       salvarNoFirestore(newBook);
-
-      // Atualiza interface
       document.getElementById('bookForm').reset();
       document.getElementById('coverPreview').innerHTML = '';
     });
@@ -767,16 +754,16 @@
       db.settings.schoolName = e.target.value;
     });
 
-    // Inicializar
-    document.addEventListener('DOMContentLoaded', () => {
-      verificarAutenticacao();
-    });
-
     // Atualizar estatísticas
     function updateStats() {
       document.getElementById('totalBooks').textContent = db.books.length;
       document.getElementById('availableBooks').textContent = db.books.length;
     }
+
+    // Inicializar
+    document.addEventListener('DOMContentLoaded', () => {
+      verificarAutenticacao();
+    });
   </script>
 </body>
 </html>
