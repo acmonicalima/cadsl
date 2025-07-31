@@ -653,21 +653,33 @@
     });
 
     // Realtime Firestore snapshot para listar livros
-    function loadBooksRealtime() {
-      const colRef = collection(db, 'books');
-      onSnapshot(colRef, (snapshot) => {
-        booksData = [];
-        booksList.innerHTML = '';
-        snapshot.forEach(docSnap => {
-          const book = { id: docSnap.id, ...docSnap.data() };
-          booksData.push(book);
-        });
-        renderBooks(booksData);
-        updateReports();
-      }, (error) => {
-        alert('Erro ao carregar livros: ' + error.message);
+   function loadBooksRealtime() {
+  const colRef = collection(db, 'books');
+  onSnapshot(colRef, (snapshot) => {
+    booksData = [];
+    booksList.innerHTML = '';
+    snapshot.forEach(docSnap => {
+      const book = { id: docSnap.id, ...docSnap.data() };
+      booksData.push(book);
+    });
+    renderBooks(booksData);
+    updateReports();
+  }, (error) => {
+    if (error.message.includes('Missing or insufficient permissions')) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Desconectado',
+        text: 'Você foi desconectado por falta de permissão.',
+        confirmButtonText: 'Ok'
+      }).then(() => {
+        signOut(auth);
       });
+    } else {
+      alert('Erro ao carregar livros: ' + error.message);
     }
+  });
+}
+
 
     // Renderiza tabela de livros
     function renderBooks(books) {
